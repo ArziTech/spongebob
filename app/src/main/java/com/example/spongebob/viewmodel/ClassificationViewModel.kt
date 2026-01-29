@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.system.measureTimeMillis
 
 // UI State for classification
 data class ClassificationUiState(
@@ -23,7 +24,9 @@ data class ClassificationUiState(
 data class ClassificationResult(
     val className: String,
     val confidence: Float,
-    val allPredictions: List<Prediction>
+    val allPredictions: List<Prediction>,
+    val inferenceTimeMillis: Long = 0L,  // Time taken for inference in milliseconds
+    val useNnapi: Boolean = false  // Whether NNAPI hardware acceleration was used
 )
 
 data class Prediction(
@@ -108,11 +111,21 @@ class ClassificationViewModel(
             _uiState.update { it.copy(isProcessing = true, errorMessage = null) }
 
             try {
-                val result = onnxModelManager.runInference(uri)
+                // Measure inference time
+                var inferenceResult: ClassificationResult? = null
+                val inferenceTime = measureTimeMillis {
+                    inferenceResult = onnxModelManager.runInference(uri)
+                }
+
+                // Add inference time to the result
+                val resultWithTime = inferenceResult?.copy(
+                    inferenceTimeMillis = inferenceTime
+                )
+
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
-                        result = result
+                        result = resultWithTime
                     )
                 }
             } catch (e: Exception) {

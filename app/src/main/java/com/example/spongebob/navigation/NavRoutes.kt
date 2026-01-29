@@ -20,3 +20,9 @@ data class Result(
     val className: String,
     val confidence: Float
 )
+
+@Serializable
+object Settings
+
+@Serializable
+object NnapiPrompt

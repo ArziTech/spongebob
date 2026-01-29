@@ -12,12 +12,19 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,14 +34,30 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,20 +69,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -70,9 +94,146 @@ import com.example.spongebob.navigation.Camera
 import com.example.spongebob.navigation.Inference
 import com.example.spongebob.navigation.Input
 import com.example.spongebob.navigation.Result
+import com.example.spongebob.ui.theme.BubbleWhite
+import com.example.spongebob.ui.theme.KrabRed
+import com.example.spongebob.ui.theme.OceanBlue
+import com.example.spongebob.ui.theme.SpongeYellow
+import com.example.spongebob.ui.theme.SpongeYellowDark
 import com.example.spongebob.viewmodel.ClassificationUiState
 import com.example.spongebob.viewmodel.ClassificationViewModel
 import kotlinx.coroutines.launch
+import com.example.spongebob.ui.theme.DeepSea
+import com.example.spongebob.ui.theme.PatrickPink
+import com.example.spongebob.ui.theme.SeaFoam
+import com.example.spongebob.ui.theme.SquidwardTeal
+import com.example.spongebob.viewmodel.SettingsViewModel
+
+// ==================== UNDERWATER BACKGROUND WITH BUBBLES ====================
+@Composable
+fun UnderwaterBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier) {
+        // Animated bubbles
+        UnderwaterBubbles()
+
+        // Content
+        content()
+    }
+}
+
+@Composable
+fun UnderwaterBubbles() {
+    // Create multiple animated bubbles
+    val bubbleCount = 8
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        repeat(bubbleCount) { index ->
+            val xPos = ((index * 120) % 400).dp
+            val yPos = ((index * 80) % 600).dp
+            val sizeVal = (20 + (index % 3) * 10).dp
+
+            Bubble(
+                modifier = Modifier
+                    .offset(x = xPos, y = yPos)
+                    .size(sizeVal),
+                delay = index * 300L
+            )
+        }
+    }
+}
+
+@Composable
+fun Bubble(
+    modifier: Modifier = Modifier,
+    delay: Long = 0
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "bubble")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000 + delay.toInt(), delayMillis = delay.toInt()),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bubbleScale"
+    )
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500 + delay.toInt(), delayMillis = delay.toInt()),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bubbleAlpha"
+    )
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clip(CircleShape)
+            .background(BubbleWhite.copy(alpha = alpha))
+    )
+}
+
+// ==================== SPONGEBOB TITLE ====================
+@Composable
+fun SpongeBobTitle(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.primary,
+        textAlign = TextAlign.Center,
+        letterSpacing = 0.5.sp
+    )
+}
+
+// ==================== SPONGEBOB BUTTON ====================
+@Composable
+fun SpongeBobButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    text: String
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(52.dp),
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = SpongeYellow,
+            contentColor = DeepSea,
+            disabledContainerColor = SpongeYellow.copy(alpha = 0.5f),
+            disabledContentColor = DeepSea.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(CornerSize(16.dp)),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 2.dp
+        )
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
 
 // ==================== INPUT SCREEN ====================
 @Composable
@@ -81,6 +242,7 @@ fun InputScreen(
     onImageSelected: (android.net.Uri) -> Unit,
     onNavigateToCamera: () -> Unit,
     onNavigateToInference: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onClearError: () -> Unit
 ) {
     val context = LocalContext.current
@@ -106,135 +268,202 @@ fun InputScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { snackbarData ->
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = KrabRed
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = snackbarData.visuals.message,
+                            modifier = Modifier.padding(16.dp),
+                            color = BubbleWhite
+                        )
+                    }
+                }
+            )
+        }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+        UnderwaterBackground(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                // Title
-                Text(
-                    text = "Image Classification",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Image preview or placeholder
-                if (uiState.imageUri != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(280.dp)
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = uiState.imageUri,
-                            contentDescription = "Selected image",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(280.dp)
-                            .background(Color.LightGray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No image selected",
-                            color = Color.DarkGray
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // Source buttons
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Button(
-                        onClick = { galleryLauncher.launch("image/*") },
-                        enabled = uiState.isModelReady
-                    ) {
-                        Text("Gallery")
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Button(
-                        onClick = onNavigateToCamera,
-                        enabled = uiState.isModelReady
-                    ) {
-                        Text("Camera")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Model loading status
-                if (!uiState.isModelReady) {
-                    Text(
-                        text = "Loading AI model...",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                } else {
-                    Text(
-                        text = "Select image source",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Next button
-                Button(
-                    onClick = onNavigateToInference,
-                    enabled = uiState.imageUri != null && !uiState.isProcessing && uiState.isModelReady
-                ) {
-                    if (uiState.isProcessing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color.White
-                        )
-                    } else {
-                        Text("Next: Classify")
-                    }
-                }
-            }
-
-            // Loading indicator in top right corner
-            if (!uiState.isModelReady) {
-                Box(
+                Column(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = CircleShape
-                        )
-                        .padding(8.dp)
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // App icon/title
+                    Card(
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = SpongeYellow
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "🧽",
+                                fontSize = 40.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Title with settings button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SpongeBobTitle(
+                            text = "SpongeBob Classifier",
+                            modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            text = "Loading...",
-                            fontSize = 12.sp
+
+                        // Settings button
+                        IconButton(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                        ) {
+                            Text(
+                                text = "⚙️",
+                                fontSize = 24.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Identify underwater creatures!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Image preview card
+                    Card(
+                        modifier = Modifier.size(280.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            3.dp,
+                            OceanBlue.copy(alpha = 0.3f)
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (uiState.imageUri != null) {
+                                AsyncImage(
+                                    model = uiState.imageUri,
+                                    contentDescription = "Selected image",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "📸",
+                                        fontSize = 48.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "No image selected",
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Source buttons row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SpongeBobButton(
+                            onClick = { galleryLauncher.launch("image/*") },
+                            enabled = uiState.isModelReady,
+                            text = "📷 Gallery",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        SpongeBobButton(
+                            onClick = onNavigateToCamera,
+                            enabled = uiState.isModelReady,
+                            text = "📸 Camera",
+                            modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Model loading status
+                    if (!uiState.isModelReady) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = OceanBlue,
+                                strokeWidth = 2.dp
+                            )
+                            Text(
+                                text = "Loading AI model...",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "✓ AI Ready - Select an image source",
+                            fontSize = 12.sp,
+                            color = PatrickPink.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Classify button
+                    SpongeBobButton(
+                        onClick = onNavigateToInference,
+                        enabled = uiState.imageUri != null && !uiState.isProcessing && uiState.isModelReady,
+                        text = if (uiState.isProcessing) "⏳ Processing..." else "✨ Classify",
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    )
                 }
             }
         }
@@ -263,9 +492,6 @@ fun CameraOverlay(
             val boxTop = (screenHeight - boxSize) / 2
 
             // Draw semi-transparent overlay outside the focus box
-            // We'll draw four rectangles around the center box
-            val overlayColor = android.graphics.Color.BLACK
-
             // Top rectangle
             drawRoundRect(
                 color = Color.Black.copy(alpha = 0.5f),
@@ -294,9 +520,9 @@ fun CameraOverlay(
                 topLeft = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop)
             )
 
-            // Draw white border around focus box
+            // Draw SpongeBob yellow border around focus box
             drawRoundRect(
-                color = Color.White,
+                color = SpongeYellow,
                 size = androidx.compose.ui.geometry.Size(boxSize, boxSize),
                 topLeft = androidx.compose.ui.geometry.Offset(boxLeft, boxTop),
                 style = Stroke(width = 4.dp.toPx())
@@ -308,13 +534,13 @@ fun CameraOverlay(
 
             // Top-left corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + cornerLength),
                 end = androidx.compose.ui.geometry.Offset(boxLeft, boxTop),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop),
                 end = androidx.compose.ui.geometry.Offset(boxLeft + cornerLength, boxTop),
                 strokeWidth = cornerThickness
@@ -322,13 +548,13 @@ fun CameraOverlay(
 
             // Top-right corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize - cornerLength, boxTop),
                 end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop),
                 end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + cornerLength),
                 strokeWidth = cornerThickness
@@ -336,13 +562,13 @@ fun CameraOverlay(
 
             // Bottom-left corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + boxSize - cornerLength),
                 end = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + boxSize),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + boxSize),
                 end = androidx.compose.ui.geometry.Offset(boxLeft + cornerLength, boxTop + boxSize),
                 strokeWidth = cornerThickness
@@ -350,13 +576,13 @@ fun CameraOverlay(
 
             // Bottom-right corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize - cornerLength, boxTop + boxSize),
                 end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + boxSize),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + boxSize - cornerLength),
                 end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + boxSize),
                 strokeWidth = cornerThickness
@@ -396,22 +622,57 @@ fun CameraScreen(
 
     if (!hasCameraPermission) {
         // Permission denied screen
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Camera permission is required",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                Text("Grant Permission")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onBack) {
-                Text("Back")
+        UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Card(
+                    modifier = Modifier.padding(32.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "📷",
+                            fontSize = 64.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Camera Permission Required",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Please grant camera permission to take photos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        SpongeBobButton(
+                            onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                            text = "Grant Permission"
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = onBack,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = OceanBlue
+                            )
+                        ) {
+                            Text("Back")
+                        }
+                    }
+                }
             }
         }
         return
@@ -428,14 +689,28 @@ fun CameraScreen(
         // Focus box overlay
         CameraOverlay(modifier = Modifier.fillMaxSize())
 
-        // Back button
-        Button(
-            onClick = onBack,
+        // Top bar
+        Row(
             modifier = Modifier
-                .padding(16.dp)
                 .align(Alignment.TopStart)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Back")
+            // Back button
+            FilledIconButton(
+                onClick = onBack,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = SpongeYellow.copy(alpha = 0.9f),
+                    contentColor = DeepSea
+                ),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -487,6 +762,7 @@ fun CameraPreview(
         modifier = modifier,
         contentAlignment = Alignment.BottomCenter
     ) {
+        // Capture button with yellow SpongeBob style
         Button(
             onClick = {
                 imageCapture.takePicture(
@@ -528,9 +804,20 @@ fun CameraPreview(
             modifier = Modifier
                 .padding(32.dp)
                 .size(80.dp),
-            shape = CircleShape
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = SpongeYellow,
+                contentColor = DeepSea
+            ),
+            elevation = ButtonDefaults.buttonElevation(8.dp)
         ) {
-            // Capture button (empty circle)
+            // Inner circle
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(DeepSea)
+            )
         }
     }
 }
@@ -648,32 +935,66 @@ fun CropScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Button(onClick = onCancel) {
-                Text("Cancel")
-            }
-            Button(
-                onClick = {
-                    bitmap?.let {
-                        val croppedUri = cropAndSaveImage(context, it)
-                        croppedUri?.let { uri -> onConfirm(uri) }
-                    }
-                }
+            Card(
+                shape = CircleShape
             ) {
-                Text("Confirm")
+                IconButton(
+                    onClick = onCancel,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = KrabRed.copy(alpha = 0.9f),
+                        contentColor = BubbleWhite
+                    ),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Cancel",
+                        tint = BubbleWhite
+                    )
+                }
+            }
+
+            Card(
+                shape = CircleShape
+            ) {
+                IconButton(
+                    onClick = {
+                        bitmap?.let {
+                            val croppedUri = cropAndSaveImage(context, it)
+                            croppedUri?.let { uri -> onConfirm(uri) }
+                        }
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = OceanBlue,
+                        contentColor = BubbleWhite
+                    ),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = "Confirm",
+                        tint = BubbleWhite
+                    )
+                }
             }
         }
 
         // Instructions
-        Box(
+        Card(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(32.dp)
+                .padding(32.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Black.copy(alpha = 0.7f)
+            ),
+            shape = RoundedCornerShape(16.dp)
         ) {
             Text(
                 text = "Position image within the frame",
-                color = Color.White,
+                modifier = Modifier.padding(16.dp),
+                color = BubbleWhite,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -724,9 +1045,9 @@ fun CropOverlay(modifier: Modifier = Modifier) {
                 size = androidx.compose.ui.geometry.Size(screenWidth - cropLeft - cropSize, cropSize)
             )
 
-            // Draw white border around crop rectangle
+            // Draw SpongeBob yellow border around crop rectangle
             drawRoundRect(
-                color = Color.White,
+                color = SpongeYellow,
                 topLeft = androidx.compose.ui.geometry.Offset(cropLeft, cropTop),
                 size = androidx.compose.ui.geometry.Size(cropSize, cropSize),
                 style = Stroke(width = 4.dp.toPx())
@@ -738,13 +1059,13 @@ fun CropOverlay(modifier: Modifier = Modifier) {
 
             // Top-left corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cornerLength),
                 end = androidx.compose.ui.geometry.Offset(cropLeft, cropTop),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop),
                 end = androidx.compose.ui.geometry.Offset(cropLeft + cornerLength, cropTop),
                 strokeWidth = cornerThickness
@@ -752,13 +1073,13 @@ fun CropOverlay(modifier: Modifier = Modifier) {
 
             // Top-right corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize - cornerLength, cropTop),
                 end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop),
                 end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cornerLength),
                 strokeWidth = cornerThickness
@@ -766,13 +1087,13 @@ fun CropOverlay(modifier: Modifier = Modifier) {
 
             // Bottom-left corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cropSize - cornerLength),
                 end = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cropSize),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cropSize),
                 end = androidx.compose.ui.geometry.Offset(cropLeft + cornerLength, cropTop + cropSize),
                 strokeWidth = cornerThickness
@@ -780,13 +1101,13 @@ fun CropOverlay(modifier: Modifier = Modifier) {
 
             // Bottom-right corner
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize - cornerLength, cropTop + cropSize),
                 end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cropSize),
                 strokeWidth = cornerThickness
             )
             drawLine(
-                color = Color.White,
+                color = SpongeYellow,
                 start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cropSize - cornerLength),
                 end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cropSize),
                 strokeWidth = cornerThickness
@@ -868,49 +1189,101 @@ fun InferenceScreen(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Classifying...",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Image preview
-        if (uiState.imageUri != null) {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Animated bubble effect
+            Card(
+                modifier = Modifier.size(120.dp),
+                shape = CircleShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = SpongeYellow
+                ),
+                elevation = CardDefaults.cardElevation(8.dp)
             ) {
-                AsyncImage(
-                    model = uiState.imageUri,
-                    contentDescription = "Selected image",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                    val scale by infiniteTransition.animateFloat(
+                        initialValue = 0.8f,
+                        targetValue = 1.2f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "pulse"
+                    )
+                    Text(
+                        text = "🔍",
+                        fontSize = 48.sp,
+                        modifier = Modifier.scale(scale)
+                    )
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(32.dp))
 
-        if (uiState.isProcessing) {
-            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Analyzing...",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Running AI model inference...",
-                color = Color.Gray
-            )
-        } else if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage ?: "Error occurred",
-                color = Color.Red,
-                textAlign = TextAlign.Center
-            )
+
+            // Image preview
+            if (uiState.imageUri != null) {
+                Card(
+                    modifier = Modifier.size(180.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    AsyncImage(
+                        model = uiState.imageUri,
+                        contentDescription = "Selected image",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            if (uiState.isProcessing) {
+                CircularProgressIndicator(
+                    color = OceanBlue,
+                    strokeWidth = 3.dp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Running AI classification...",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            } else if (uiState.errorMessage != null) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = KrabRed
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = uiState.errorMessage ?: "Error occurred",
+                        modifier = Modifier.padding(16.dp),
+                        color = BubbleWhite,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }
@@ -919,94 +1292,286 @@ fun InferenceScreen(
 @Composable
 fun ResultScreen(
     uiState: ClassificationUiState,
+    settingsViewModel: SettingsViewModel,
     onBack: () -> Unit,
     onNewImage: () -> Unit
 ) {
     val result = uiState.result
+    val showInferenceTime by settingsViewModel.showInferenceTime.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(16.dp))
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Classification Result",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Image preview
-        if (uiState.imageUri != null) {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
+            // Result icon
+            Card(
+                modifier = Modifier.size(80.dp),
+                shape = CircleShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = PatrickPink
+                ),
+                elevation = CardDefaults.cardElevation(8.dp)
             ) {
-                AsyncImage(
-                    model = uiState.imageUri,
-                    contentDescription = "Selected image",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🎉",
+                        fontSize = 40.sp
+                    )
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
 
-        // Main result
-        if (result != null) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            ) {
-                Text(
-                    text = "Predicted Class:",
-                    fontSize = 16.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = result.className,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Confidence: ${(result.confidence * 100).toInt()}%",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SpongeBobTitle(
+                text = "Classification Result"
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Image preview
+            if (uiState.imageUri != null) {
+                Card(
+                    modifier = Modifier.size(200.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(
+                        3.dp,
+                        OceanBlue.copy(alpha = 0.3f)
+                    ),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    AsyncImage(
+                        model = uiState.imageUri,
+                        contentDescription = "Selected image",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Main result
+            if (result != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(
+                        2.dp,
+                        SpongeYellowDark.copy(alpha = 0.5f)
+                    ),
+                    elevation = CardDefaults.cardElevation(6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Predicted Class",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = result.className,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center,
+                            color = OceanBlue
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Confidence meter
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Confidence",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${(result.confidence * 100).toInt()}%",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when {
+                                    result.confidence >= 0.8f -> PatrickPink
+                                    result.confidence >= 0.5f -> SpongeYellowDark
+                                    else -> KrabRed
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Confidence bar
+                        androidx.compose.foundation.Canvas(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                        ) {
+                            val barWidth = size.width * result.confidence
+                            drawRoundRect(
+                                color = Color.White.copy(alpha = 0.2f),
+                                size = size,
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+                            )
+                            drawRoundRect(
+                                color = when {
+                                    result.confidence >= 0.8f -> PatrickPink
+                                    result.confidence >= 0.5f -> SpongeYellowDark
+                                    else -> KrabRed
+                                },
+                                size = androidx.compose.ui.geometry.Size(barWidth, size.height),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Inference time and hardware display
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Hardware indicator
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (result.useNnapi) PatrickPink.copy(alpha = 0.15f) else OceanBlue.copy(alpha = 0.15f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (result.useNnapi) "⚡" else "💻",
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = if (result.useNnapi) "NNAPI" else "CPU",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (result.useNnapi) PatrickPink else OceanBlue
+                            )
+                        }
+                    }
+
+                    // Inference time (conditional based on settings)
+                    if (showInferenceTime && result.inferenceTimeMillis > 0) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = OceanBlue.copy(alpha = 0.15f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "⏱️",
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = "${result.inferenceTimeMillis}ms",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = OceanBlue
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // All predictions list
-                Text(
-                    text = "All Predictions:",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                result.allPredictions.forEach { prediction ->
-                    PredictionRow(prediction)
-                    Spacer(modifier = Modifier.height(4.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "All Predictions",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        result.allPredictions.forEach { prediction ->
+                            PredictionRow(prediction)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
                 }
-            }
 
-            // Buttons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Button(onClick = onBack) {
-                    Text("Back to Input")
-                }
-                Button(onClick = onNewImage) {
-                    Text("New Image")
+                // Buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = OceanBlue
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(2.dp, OceanBlue.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Home")
+                    }
+
+                    SpongeBobButton(
+                        onClick = onNewImage,
+                        modifier = Modifier.weight(1f),
+                        text = "📷 New Image"
+                    )
                 }
             }
         }
@@ -1019,23 +1584,168 @@ fun PredictionRow(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = prediction.className,
-            fontSize = 14.sp
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Text(
-            text = "${(prediction.confidence * 100).toInt()}%",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = when {
-                prediction.confidence >= 0.8f -> Color(0xFF4CAF50)
-                prediction.confidence >= 0.5f -> Color(0xFFFF9800)
-                else -> Color(0xFFF44336)
+
+        // Confidence indicator
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = when {
+                    prediction.confidence >= 0.8f -> PatrickPink.copy(alpha = 0.2f)
+                    prediction.confidence >= 0.5f -> SpongeYellowDark.copy(alpha = 0.2f)
+                    else -> KrabRed.copy(alpha = 0.2f)
+                }
+            )
+        ) {
+            Text(
+                text = "${(prediction.confidence * 100).toInt()}%",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = when {
+                    prediction.confidence >= 0.8f -> PatrickPink
+                    prediction.confidence >= 0.5f -> SpongeYellowDark
+                    else -> KrabRed
+                },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+// ==================== NNAPI PROMPT SCREEN ====================
+@Composable
+fun NnapiPromptScreen(
+    onEnable: () -> Unit,
+    onSkip: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onSkip) // Dismiss on background click
+            .background(Color.Black.copy(alpha = 0.6f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Icon
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(SpongeYellow.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⚡",
+                        fontSize = 32.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Title
+                Text(
+                    text = "Enable Hardware Acceleration?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Description
+                Text(
+                    text = "Your device supports NNAPI for faster AI inference. This can significantly speed up image classification.",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Warning card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = KrabRed.copy(alpha = 0.15f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⚠️",
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "May cause issues on some devices. You can disable this in Settings later.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onSkip,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        )
+                    ) {
+                        Text("Skip", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    }
+
+                    Button(
+                        onClick = onEnable,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SpongeYellow,
+                            contentColor = DeepSea
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Enable", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
-        )
+        }
     }
 }

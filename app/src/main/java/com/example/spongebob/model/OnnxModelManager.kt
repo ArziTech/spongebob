@@ -1,9 +1,11 @@
 package com.example.spongebob.model
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import ai.onnxruntime.OnnxJavaType
 import ai.onnxruntime.OnnxTensor
@@ -25,7 +27,10 @@ import java.nio.ByteOrder
  * - Input: [1, 3, 480, 480] float32 tensor (RGB image normalized to [0,1])
  * - Output: [1, 3] float32 tensor (class probabilities for Sehat, Sedang, Parah)
  */
-class OnnxModelManager(private val context: Context) {
+class OnnxModelManager(
+    private val context: Context,
+    private val useNnapi: Boolean = false
+) {
 
     private var environment: OrtEnvironment? = null
     private var session: OrtSession? = null
@@ -41,6 +46,7 @@ class OnnxModelManager(private val context: Context) {
         const val INPUT_WIDTH = 480   // Model input size
         const val INPUT_HEIGHT = 480  // Model input size
         const val CLASS_COUNT = 3 // 3 classes: Sehat, Sedang, Parah
+        private const val MIN_API_LEVEL_FOR_NNAPI = 27 // Android 8.1+
 
         // Class labels - REPLACE WITH YOUR MODEL'S CLASSES
         val CLASS_LABELS = listOf(
@@ -48,6 +54,21 @@ class OnnxModelManager(private val context: Context) {
             "Sedang",
             "Parah"
         )
+    }
+
+    /**
+     * Check if the device supports NNAPI (Neural Networks API).
+     * Requires API level 27+ (Android 8.1) and the NNAPI feature flag.
+     */
+    fun isNnapiSupported(): Boolean {
+        if (Build.VERSION.SDK_INT < MIN_API_LEVEL_FOR_NNAPI) {
+            Log.d(TAG, "NNAPI not supported: API level ${Build.VERSION.SDK_INT} < $MIN_API_LEVEL_FOR_NNAPI")
+            return false
+        }
+        // FEATURE_NNAPI constant string ("android.software.nnapi")
+        val hasFeature = context.packageManager.hasSystemFeature("android.software.nnapi")
+        Log.d(TAG, "NNAPI supported: $hasFeature")
+        return hasFeature
     }
 
     /**
@@ -94,14 +115,23 @@ class OnnxModelManager(private val context: Context) {
 
         // Step 2: Create session options
         Log.d(TAG, "[2/5] Creating session options...")
+        val nnapiEnabled = useNnapi && isNnapiSupported()
         val options = OrtSession.SessionOptions().apply {
-            // Disable NNAPI for now (can cause compatibility issues)
-            // To enable later, uncomment:
-            // addConfigEntry("session.nnapi.enabled", "1")
+            if (nnapiEnabled) {
+                Log.d(TAG, "Enabling NNAPI hardware acceleration")
+                addConfigEntry("session.nnapi.enabled", "1")
+                addConfigEntry("session.nnapi.use_nhwc", "0")
+            } else {
+                if (useNnapi) {
+                    Log.d(TAG, "NNAPI requested but not supported on this device, using CPU")
+                } else {
+                    Log.d(TAG, "Using CPU execution")
+                }
+            }
             // Set optimization level
             setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
         }
-        Log.i(TAG, "[2/5] Session options created (CPU execution, ALL_OPT)")
+        Log.i(TAG, "[2/5] Session options created (${if (nnapiEnabled) "NNAPI" else "CPU"} execution, ALL_OPT)")
 
         // Step 3: Create inference session
         Log.d(TAG, "[3/5] Creating ONNX session...")
@@ -524,10 +554,14 @@ class OnnxModelManager(private val context: Context) {
             )
         }.sortedByDescending { it.confidence }
 
+        val actuallyUsingNnapi = useNnapi && isNnapiSupported()
+        Log.i(TAG, "Execution provider: ${if (actuallyUsingNnapi) "NNAPI (Hardware)" else "CPU"}")
+
         return com.example.spongebob.viewmodel.ClassificationResult(
             className = predictions.first().className,
             confidence = predictions.first().confidence,
-            allPredictions = predictions
+            allPredictions = predictions,
+            useNnapi = actuallyUsingNnapi
         )
     }
 
