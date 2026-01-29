@@ -8,17 +8,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,13 +47,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -231,6 +242,129 @@ fun InputScreen(
 }
 
 // ==================== CAMERA SCREEN ====================
+
+// Camera overlay with focus box (70% of screen) and darkened outside area
+@Composable
+fun CameraOverlay(
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+
+    Box(modifier = modifier) {
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val screenWidth = size.width
+            val screenHeight = size.height
+
+            // Focus box is 70% of the smaller dimension
+            val boxSize = minOf(screenWidth, screenHeight) * 0.7f
+            val boxLeft = (screenWidth - boxSize) / 2
+            val boxTop = (screenHeight - boxSize) / 2
+
+            // Draw semi-transparent overlay outside the focus box
+            // We'll draw four rectangles around the center box
+            val overlayColor = android.graphics.Color.BLACK
+
+            // Top rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.5f),
+                size = androidx.compose.ui.geometry.Size(screenWidth, boxTop),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, 0f)
+            )
+
+            // Bottom rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.5f),
+                size = androidx.compose.ui.geometry.Size(screenWidth, screenHeight - boxTop - boxSize),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, boxTop + boxSize)
+            )
+
+            // Left rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.5f),
+                size = androidx.compose.ui.geometry.Size(boxLeft, boxSize),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, boxTop)
+            )
+
+            // Right rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.5f),
+                size = androidx.compose.ui.geometry.Size(screenWidth - boxLeft - boxSize, boxSize),
+                topLeft = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop)
+            )
+
+            // Draw white border around focus box
+            drawRoundRect(
+                color = Color.White,
+                size = androidx.compose.ui.geometry.Size(boxSize, boxSize),
+                topLeft = androidx.compose.ui.geometry.Offset(boxLeft, boxTop),
+                style = Stroke(width = 4.dp.toPx())
+            )
+
+            // Draw corner brackets for better visibility
+            val cornerLength = boxSize * 0.1f
+            val cornerThickness = 8.dp.toPx()
+
+            // Top-left corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + cornerLength),
+                end = androidx.compose.ui.geometry.Offset(boxLeft, boxTop),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop),
+                end = androidx.compose.ui.geometry.Offset(boxLeft + cornerLength, boxTop),
+                strokeWidth = cornerThickness
+            )
+
+            // Top-right corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize - cornerLength, boxTop),
+                end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop),
+                end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + cornerLength),
+                strokeWidth = cornerThickness
+            )
+
+            // Bottom-left corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + boxSize - cornerLength),
+                end = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + boxSize),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft, boxTop + boxSize),
+                end = androidx.compose.ui.geometry.Offset(boxLeft + cornerLength, boxTop + boxSize),
+                strokeWidth = cornerThickness
+            )
+
+            // Bottom-right corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize - cornerLength, boxTop + boxSize),
+                end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + boxSize),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + boxSize - cornerLength),
+                end = androidx.compose.ui.geometry.Offset(boxLeft + boxSize, boxTop + boxSize),
+                strokeWidth = cornerThickness
+            )
+        }
+    }
+}
+
 @Composable
 fun CameraScreen(
     onImageCaptured: (android.net.Uri) -> Unit,
@@ -290,6 +424,9 @@ fun CameraScreen(
             modifier = Modifier.fillMaxSize(),
             onImageCaptured = onImageCaptured
         )
+
+        // Focus box overlay
+        CameraOverlay(modifier = Modifier.fillMaxSize())
 
         // Back button
         Button(
@@ -352,19 +489,34 @@ fun CameraPreview(
     ) {
         Button(
             onClick = {
-                val outputFile = java.io.File(
-                    context.cacheDir,
-                    "photo_${System.currentTimeMillis()}.jpg"
-                )
-
-                val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
-
                 imageCapture.takePicture(
-                    outputOptions,
                     ContextCompat.getMainExecutor(context),
-                    object : ImageCapture.OnImageSavedCallback {
-                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            output.savedUri?.let { onImageCaptured(it) }
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                            try {
+                                // Crop to center 480x480
+                                val croppedBitmap = cropImageToCenter(imageProxy)
+
+                                // Save to temp file
+                                val outputFile = java.io.File(
+                                    context.cacheDir,
+                                    "photo_cropped_${System.currentTimeMillis()}.jpg"
+                                )
+
+                                java.io.FileOutputStream(outputFile).use { out ->
+                                    croppedBitmap.compress(
+                                        android.graphics.Bitmap.CompressFormat.JPEG,
+                                        95,
+                                        out
+                                    )
+                                }
+
+                                onImageCaptured(android.net.Uri.fromFile(outputFile))
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            } finally {
+                                imageProxy.close()
+                            }
                         }
 
                         override fun onError(exc: ImageCaptureException) {
@@ -380,6 +532,320 @@ fun CameraPreview(
         ) {
             // Capture button (empty circle)
         }
+    }
+}
+
+/**
+ * Crop image to center 480x480 pixels
+ */
+private fun cropImageToCenter(imageProxy: ImageProxy): android.graphics.Bitmap {
+    val targetSize = 480
+
+    // Rotate if needed (based on image rotation)
+    val rotation = imageProxy.imageInfo.rotationDegrees
+    val bitmap = if (rotation != 0) {
+        val matrix = android.graphics.Matrix()
+        matrix.postRotate(rotation.toFloat())
+        android.graphics.Bitmap.createBitmap(
+            imageProxy.toBitmap(),
+            0, 0,
+            imageProxy.width,
+            imageProxy.height,
+            matrix,
+            true
+        )
+    } else {
+        imageProxy.toBitmap()
+    }
+
+    // Calculate center crop
+    val width = bitmap.width
+    val height = bitmap.height
+
+    val cropSize = minOf(width, height)
+    val x = (width - cropSize) / 2
+    val y = (height - cropSize) / 2
+
+    // Crop center square
+    val croppedBitmap = android.graphics.Bitmap.createBitmap(
+        bitmap,
+        x, y,
+        cropSize, cropSize
+    )
+
+    // Scale to exactly 480x480
+    return android.graphics.Bitmap.createScaledBitmap(
+        croppedBitmap,
+        targetSize,
+        targetSize,
+        true
+    )
+}
+
+// ==================== CROP SCREEN ====================
+@Composable
+fun CropScreen(
+    imageUri: String,
+    onConfirm: (android.net.Uri) -> Unit,
+    onCancel: () -> Unit
+) {
+    val context = LocalContext.current
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    // Load bitmap for cropping
+    val bitmapState = remember(imageUri) {
+        mutableStateOf<android.graphics.Bitmap?>(null)
+    }
+
+    LaunchedEffect(imageUri) {
+        try {
+            val inputStream = context.contentResolver.openInputStream(android.net.Uri.parse(imageUri))
+            inputStream?.let { stream ->
+                bitmapState.value = android.graphics.BitmapFactory.decodeStream(stream)
+                stream.close()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    val bitmap = bitmapState.value
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Image with pan/zoom gestures
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(0.5f, 5f)
+                        offset += pan
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = "Image to crop",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offset.x
+                        translationY = offset.y
+                    },
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        // Fixed crop rectangle overlay (70% of screen)
+        CropOverlay(modifier = Modifier.fillMaxSize())
+
+        // Top buttons (Cancel/Confirm)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(onClick = onCancel) {
+                Text("Cancel")
+            }
+            Button(
+                onClick = {
+                    bitmap?.let {
+                        val croppedUri = cropAndSaveImage(context, it)
+                        croppedUri?.let { uri -> onConfirm(uri) }
+                    }
+                }
+            ) {
+                Text("Confirm")
+            }
+        }
+
+        // Instructions
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(32.dp)
+        ) {
+            Text(
+                text = "Position image within the frame",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+// Crop overlay - fixed square rectangle in center with dark overlay outside
+@Composable
+fun CropOverlay(modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val screenWidth = size.width
+            val screenHeight = size.height
+
+            // Fixed crop rectangle is 70% of the smaller dimension
+            val cropSize = minOf(screenWidth, screenHeight) * 0.7f
+            val cropLeft = (screenWidth - cropSize) / 2
+            val cropTop = (screenHeight - cropSize) / 2
+
+            // Draw semi-transparent overlay outside the crop rectangle
+            // Top rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.6f),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, 0f),
+                size = androidx.compose.ui.geometry.Size(screenWidth, cropTop)
+            )
+
+            // Bottom rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.6f),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, cropTop + cropSize),
+                size = androidx.compose.ui.geometry.Size(screenWidth, screenHeight - cropTop - cropSize)
+            )
+
+            // Left rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.6f),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, cropTop),
+                size = androidx.compose.ui.geometry.Size(cropLeft, cropSize)
+            )
+
+            // Right rectangle
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.6f),
+                topLeft = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop),
+                size = androidx.compose.ui.geometry.Size(screenWidth - cropLeft - cropSize, cropSize)
+            )
+
+            // Draw white border around crop rectangle
+            drawRoundRect(
+                color = Color.White,
+                topLeft = androidx.compose.ui.geometry.Offset(cropLeft, cropTop),
+                size = androidx.compose.ui.geometry.Size(cropSize, cropSize),
+                style = Stroke(width = 4.dp.toPx())
+            )
+
+            // Draw corner brackets
+            val cornerLength = cropSize * 0.08f
+            val cornerThickness = 6.dp.toPx()
+
+            // Top-left corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cornerLength),
+                end = androidx.compose.ui.geometry.Offset(cropLeft, cropTop),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop),
+                end = androidx.compose.ui.geometry.Offset(cropLeft + cornerLength, cropTop),
+                strokeWidth = cornerThickness
+            )
+
+            // Top-right corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize - cornerLength, cropTop),
+                end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop),
+                end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cornerLength),
+                strokeWidth = cornerThickness
+            )
+
+            // Bottom-left corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cropSize - cornerLength),
+                end = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cropSize),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft, cropTop + cropSize),
+                end = androidx.compose.ui.geometry.Offset(cropLeft + cornerLength, cropTop + cropSize),
+                strokeWidth = cornerThickness
+            )
+
+            // Bottom-right corner
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize - cornerLength, cropTop + cropSize),
+                end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cropSize),
+                strokeWidth = cornerThickness
+            )
+            drawLine(
+                color = Color.White,
+                start = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cropSize - cornerLength),
+                end = androidx.compose.ui.geometry.Offset(cropLeft + cropSize, cropTop + cropSize),
+                strokeWidth = cornerThickness
+            )
+        }
+    }
+}
+
+/**
+ * Crop and save image to 480x480
+ * Takes the center crop of the original image and resizes to 480x480
+ */
+private fun cropAndSaveImage(
+    context: Context,
+    originalBitmap: android.graphics.Bitmap
+): android.net.Uri? {
+    return try {
+        val targetSize = 480
+
+        // Take the center crop of the original image and resize to 480x480
+        val width = originalBitmap.width
+        val height = originalBitmap.height
+        val cropSize = minOf(width, height)
+        val x = (width - cropSize) / 2
+        val y = (height - cropSize) / 2
+
+        // Crop center square
+        val croppedBitmap = android.graphics.Bitmap.createBitmap(
+            originalBitmap,
+            x, y,
+            cropSize, cropSize
+        )
+
+        // Scale to exactly 480x480
+        val finalBitmap = android.graphics.Bitmap.createScaledBitmap(
+            croppedBitmap,
+            targetSize,
+            targetSize,
+            true
+        )
+
+        // Save to temp file
+        val outputFile = java.io.File(
+            context.cacheDir,
+            "crop_${System.currentTimeMillis()}.jpg"
+        )
+
+        java.io.FileOutputStream(outputFile).use { out ->
+            finalBitmap.compress(
+                android.graphics.Bitmap.CompressFormat.JPEG,
+                95,
+                out
+            )
+        }
+
+        android.net.Uri.fromFile(outputFile)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }
 

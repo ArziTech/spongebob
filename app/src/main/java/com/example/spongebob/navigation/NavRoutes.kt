@@ -10,6 +10,9 @@ object Input
 object Camera
 
 @Serializable
+data class Crop(val imageUri: String)
+
+@Serializable
 object Inference
 
 @Serializable

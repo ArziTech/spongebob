@@ -17,12 +17,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.example.spongebob.model.OnnxModelManager
 import com.example.spongebob.navigation.Camera
+import com.example.spongebob.navigation.Crop
 import com.example.spongebob.navigation.Inference
 import com.example.spongebob.navigation.Input
 import com.example.spongebob.navigation.Result
 import com.example.spongebob.screens.CameraScreen
+import com.example.spongebob.screens.CropScreen
 import com.example.spongebob.screens.InferenceScreen
 import com.example.spongebob.screens.InputScreen
 import com.example.spongebob.screens.ResultScreen
@@ -82,7 +85,10 @@ fun ClassificationNavHost(
         composable<Input> {
             InputScreen(
                 uiState = uiState,
-                onImageSelected = { uri -> viewModel.onImageSelected(uri) },
+                onImageSelected = { uri ->
+                    // Navigate to Crop screen instead of directly setting the image
+                    navController.navigate(Crop(imageUri = uri.toString()))
+                },
                 onNavigateToCamera = {
                     navController.navigate(Camera)
                 },
@@ -90,6 +96,21 @@ fun ClassificationNavHost(
                     navController.navigate(Inference)
                 },
                 onClearError = { viewModel.clearError() }
+            )
+        }
+
+        // Crop Screen
+        composable<Crop> { backStackEntry ->
+            val crop: Crop = backStackEntry.toRoute()
+            CropScreen(
+                imageUri = crop.imageUri,
+                onConfirm = { croppedUri ->
+                    viewModel.onImageCropped(croppedUri)
+                    navController.popBackStack()
+                },
+                onCancel = {
+                    navController.popBackStack()
+                }
             )
         }
 

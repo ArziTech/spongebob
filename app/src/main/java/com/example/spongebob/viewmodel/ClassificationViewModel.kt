@@ -74,6 +74,10 @@ class ClassificationViewModel(
         _uiState.update { it.copy(imageUri = uri, result = null, errorMessage = null) }
     }
 
+    fun onImageCropped(uri: Uri) {
+        _uiState.update { it.copy(imageUri = uri, result = null, errorMessage = null) }
+    }
+
     fun onClearImage() {
         _uiState.update {
             it.copy(
