@@ -235,6 +235,187 @@ fun SpongeBobButton(
     }
 }
 
+// ==================== MAIN MENU SCREEN ====================
+@Composable
+fun MainMenuScreen(
+    onNavigateToDetect: () -> Unit,
+    onNavigateToEvaluate: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onQuit: () -> Unit
+) {
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Settings button (top-right)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, end = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                    ) {
+                        Text(
+                            text = "⚙️",
+                            fontSize = 28.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // App icon
+                Card(
+                    modifier = Modifier.size(120.dp),
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = SpongeYellow
+                    ),
+                    elevation = CardDefaults.cardElevation(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🧽",
+                            fontSize = 60.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // App title
+                SpongeBobTitle(
+                    text = "SpongeBob Classifier"
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "AI Image Classification",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                // Main Menu Options
+                MainMenuOptionCard(
+                    icon = "🔍",
+                    title = "Deteksi",
+                    description = "Identify objects using AI",
+                    backgroundColor = OceanBlue,
+                    onClick = onNavigateToDetect
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MainMenuOptionCard(
+                    icon = "📊",
+                    title = "Evaluate Model",
+                    description = "Test accuracy with ground truth",
+                    backgroundColor = PatrickPink,
+                    onClick = onNavigateToEvaluate
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Quit button
+                OutlinedButton(
+                    onClick = onQuit,
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(CornerSize(16.dp)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        contentColor = KrabRed
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Quit",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MainMenuOptionCard(
+    icon: String,
+    title: String,
+    description: String,
+    backgroundColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor.copy(alpha = 0.15f)
+        ),
+        border = BorderStroke(
+            2.dp,
+            backgroundColor.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = icon,
+                fontSize = 40.sp
+            )
+
+            Spacer(modifier = Modifier.width(20.dp))
+
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = backgroundColor
+                )
+                Text(
+                    text = description,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
 // ==================== INPUT SCREEN ====================
 @Composable
 fun InputScreen(
@@ -243,7 +424,8 @@ fun InputScreen(
     onNavigateToCamera: () -> Unit,
     onNavigateToInference: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onClearError: () -> Unit
+    onClearError: () -> Unit,
+    onBackToMainMenu: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -326,14 +508,29 @@ fun InputScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Title with settings button
+                    // Title with back and settings buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Back button
+                        IconButton(
+                            onClick = onBackToMainMenu,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = OceanBlue
+                            )
+                        }
+
                         SpongeBobTitle(
-                            text = "SpongeBob Classifier",
+                            text = "Deteksi",
                             modifier = Modifier.weight(1f)
                         )
 
@@ -1745,6 +1942,1118 @@ fun NnapiPromptScreen(
                         Text("Enable", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+    }
+}
+
+// ==================== EVALUATION HOME SCREEN ====================
+@Composable
+fun EvaluationHomeScreen(
+    viewModel: com.example.spongebob.viewmodel.EvaluationViewModel,
+    onNavigateToInput: () -> Unit,
+    onNavigateToHistory: (Long) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = OceanBlue
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "📊 Model Evaluation",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OceanBlue
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                    ) {
+                        Text(
+                            text = "⚙️",
+                            fontSize = 24.sp
+                        )
+                    }
+                }
+            },
+            floatingActionButton = {
+                androidx.compose.material3.FloatingActionButton(
+                    onClick = onNavigateToInput,
+                    containerColor = SpongeYellow,
+                    contentColor = DeepSea
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = "New Evaluation")
+                }
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator(color = OceanBlue)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Loading evaluation groups...")
+                            }
+                        }
+                    }
+
+                    uiState.availableGroups.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "📁",
+                                    fontSize = 64.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No Evaluation Groups",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Tap + to create your first evaluation group",
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item {
+                                Text(
+                                    text = "Evaluation Groups",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                )
+                            }
+
+                            uiState.availableGroups.forEach { group ->
+                                val evaluationCount = uiState.groupCounts[group.groupId] ?: 0
+                                val accuracy = uiState.groupAccuracy[group.groupId] ?: 0f
+
+                                item {
+                                    EvaluationGroupCard(
+                                        group = group,
+                                        evaluationCount = evaluationCount,
+                                        accuracy = accuracy,
+                                        onClick = { onNavigateToHistory(group.groupId) },
+                                        onDelete = { viewModel.deleteGroup(group.groupId) }
+                                    )
+                                }
+                            }
+
+                            item { Spacer(modifier = Modifier.height(80.dp)) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvaluationGroupCard(
+    group: com.example.spongebob.data.entity.EvaluationGroupEntity,
+    evaluationCount: Int,
+    accuracy: Float,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            2.dp,
+            when {
+                accuracy >= 0.8f -> PatrickPink.copy(alpha = 0.3f)
+                accuracy >= 0.5f -> SpongeYellow.copy(alpha = 0.3f)
+                else -> KrabRed.copy(alpha = 0.3f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Group icon with accuracy indicator
+                Card(
+                    modifier = Modifier.size(56.dp),
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = when {
+                            accuracy >= 0.8f -> PatrickPink.copy(alpha = 0.2f)
+                            accuracy >= 0.5f -> SpongeYellow.copy(alpha = 0.2f)
+                            else -> KrabRed.copy(alpha = 0.2f)
+                        }
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "${(accuracy * 100).toInt()}%",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when {
+                                    accuracy >= 0.8f -> PatrickPink
+                                    accuracy >= 0.5f -> SpongeYellow
+                                    else -> KrabRed
+                                }
+                            )
+                            Text(
+                                text = "acc",
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        text = group.groupName,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "$evaluationCount evaluations",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    group.description?.let {
+                        Text(
+                            text = it,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+
+            // Delete button
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Delete group",
+                    tint = KrabRed
+                )
+            }
+        }
+    }
+}
+
+// ==================== EVALUATION INPUT SCREEN ====================
+@Composable
+fun EvaluationInputScreen(
+    viewModel: com.example.spongebob.viewmodel.EvaluationViewModel,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    var showGroupDialog by remember { mutableStateOf(false) }
+
+    // Gallery launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { viewModel.onImageSelected(it) }
+    }
+
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = OceanBlue
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "📊 New Evaluation",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OceanBlue
+                    )
+                }
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Image preview
+                    Card(
+                        modifier = Modifier.size(280.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            3.dp,
+                            OceanBlue.copy(alpha = 0.3f)
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (uiState.selectedImageUri != null) {
+                                AsyncImage(
+                                    model = uiState.selectedImageUri,
+                                    contentDescription = "Selected image",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "📷",
+                                        fontSize = 48.sp
+                                    )
+                                    Text(
+                                        text = "Select an image",
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Image selection button
+                    SpongeBobButton(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        text = "📷 Select Image",
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Expected class input
+                    Card(
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = uiState.expectedClass,
+                            onValueChange = { viewModel.onExpectedClassChanged(it) },
+                            label = { Text("Expected Class (Ground Truth)") },
+                            placeholder = {
+                                Text("e.g., ${viewModel.getClassLabels().first()}")
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Group selection
+                    Card(
+                        onClick = { showGroupDialog = true },
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Evaluation Group",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    text = uiState.selectedGroupName ?: "Select a group",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Text("▼", fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Run evaluation button
+                    SpongeBobButton(
+                        onClick = { viewModel.runEvaluation() },
+                        enabled = uiState.canRunEvaluation,
+                        text = if (uiState.isProcessing) "Processing..." else "✨ Run Evaluation",
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    )
+                }
+            }
+        }
+    }
+
+    // Group selection dialog
+    if (showGroupDialog) {
+        GroupSelectionDialog(
+            groups = uiState.availableGroups,
+            selectedGroupId = uiState.selectedGroupId,
+            onGroupSelected = { groupId, groupName ->
+                viewModel.onGroupSelected(groupId, groupName)
+                showGroupDialog = false
+            },
+            onCreateNew = { groupName ->
+                viewModel.createNewGroup(groupName)
+                showGroupDialog = false
+            },
+            onDismiss = { showGroupDialog = false }
+        )
+    }
+}
+
+// ==================== GROUP SELECTION DIALOG ====================
+@Composable
+fun GroupSelectionDialog(
+    groups: List<com.example.spongebob.data.entity.EvaluationGroupEntity>,
+    selectedGroupId: Long?,
+    onGroupSelected: (Long, String) -> Unit,
+    onCreateNew: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var isNewGroup by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
+
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "Select Evaluation Group",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!isNewGroup) {
+                    // Existing groups list
+                    if (groups.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No groups yet",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    } else {
+                        groups.forEach { group ->
+                            Card(
+                                onClick = { onGroupSelected(group.groupId, group.groupName) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (selectedGroupId == group.groupId)
+                                        SpongeYellow.copy(alpha = 0.3f)
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = group.groupName,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        group.description?.let {
+                                            Text(
+                                                text = it,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                    if (selectedGroupId == group.groupId) {
+                                        Text("✓", color = OceanBlue)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Create new group option
+                    Card(
+                        onClick = { isNewGroup = true },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = OceanBlue.copy(alpha = 0.1f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "+ Create New Group",
+                                color = OceanBlue,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                } else {
+                    // New group creation form
+                    androidx.compose.material3.OutlinedTextField(
+                        value = newGroupName,
+                        onValueChange = { newGroupName = it },
+                        label = { Text("Group Name") },
+                        placeholder = { Text("e.g., Test Set A") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { isNewGroup = false },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (newGroupName.isNotBlank()) {
+                                    onCreateNew(newGroupName)
+                                }
+                            },
+                            enabled = newGroupName.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SpongeYellow
+                            )
+                        ) {
+                            Text("Create")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==================== EVALUATION RESULT SCREEN ====================
+@Composable
+fun EvaluationResultScreen(
+    evaluationId: Long,
+    groupId: Long,
+    viewModel: com.example.spongebob.viewmodel.EvaluationViewModel,
+    onNavigateToHistory: () -> Unit,
+    onNavigateToHome: () -> Unit,
+    onNewEvaluation: () -> Unit
+) {
+    var evaluation by remember { mutableStateOf<com.example.spongebob.data.entity.EvaluationEntity?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(evaluationId) {
+        evaluation = viewModel.getEvaluationById(evaluationId)
+        isLoading = false
+    }
+
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = OceanBlue)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading evaluation...")
+                    }
+                }
+            } else {
+                evaluation?.let { eval ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    ) {
+                        // Result indicator
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (eval.isCorrect)
+                                    PatrickPink.copy(alpha = 0.15f)
+                                else
+                                    KrabRed.copy(alpha = 0.15f)
+                            ),
+                            border = BorderStroke(
+                                2.dp,
+                                if (eval.isCorrect) PatrickPink else KrabRed
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (eval.isCorrect) Icons.Default.Check else Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = if (eval.isCorrect) PatrickPink else KrabRed,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = if (eval.isCorrect) "CORRECT!" else "INCORRECT",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (eval.isCorrect) PatrickPink else KrabRed
+                                )
+                            }
+                        }
+
+                        // Details
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Image
+                            Card(
+                                modifier = Modifier.size(200.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                elevation = CardDefaults.cardElevation(8.dp)
+                            ) {
+                                AsyncImage(
+                                    model = eval.imageUri,
+                                    contentDescription = "Evaluation image",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Expected vs Predicted
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                elevation = CardDefaults.cardElevation(4.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Expected: ${eval.expectedClass}",
+                                        fontSize = 18.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Predicted: ${eval.predictedClass}",
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = OceanBlue
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Confidence: ${(eval.confidence * 100).toInt()}%",
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = when {
+                                            eval.confidence >= 0.8f -> PatrickPink
+                                            eval.confidence >= 0.5f -> SpongeYellow
+                                            else -> KrabRed
+                                        }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Action buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = onNavigateToHome,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Text("Home")
+                                }
+
+                                SpongeBobButton(
+                                    onClick = onNewEvaluation,
+                                    modifier = Modifier.weight(1f),
+                                    text = "New Eval"
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            SpongeBobButton(
+                                onClick = onNavigateToHistory,
+                                modifier = Modifier.fillMaxWidth(),
+                                text = "View History"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==================== EVALUATION HISTORY SCREEN ====================
+@Composable
+fun EvaluationHistoryScreen(
+    groupId: Long,
+    viewModel: com.example.spongebob.viewmodel.HistoryViewModel,
+    onBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(groupId) {
+        viewModel.loadGroup(groupId)
+    }
+
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                // Top bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = OceanBlue
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = uiState.groupName ?: "Evaluation History",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OceanBlue
+                    )
+                }
+
+                // Stats summary
+                uiState.groupAccuracyStats?.let { stats ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(
+                                label = "Total",
+                                value = stats.total.toString(),
+                                color = OceanBlue
+                            )
+                            StatItem(
+                                label = "Correct",
+                                value = stats.correct.toString(),
+                                color = PatrickPink
+                            )
+                            StatItem(
+                                label = "Accuracy",
+                                value = "${(stats.accuracy * 100).toInt()}%",
+                                color = if (stats.accuracy >= 0.8f)
+                                    PatrickPink else KrabRed
+                            )
+                        }
+                    }
+                }
+
+                // Confusion matrix / prediction distribution
+                uiState.confusionMatrixData?.let { confusionData ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp)
+                        ) {
+                            Text(
+                                text = "Prediction Distribution",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            confusionData.forEach { entry ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${entry.expectedClass} → ${entry.predictedClass}",
+                                        modifier = Modifier.width(160.dp),
+                                        fontSize = 12.sp
+                                    )
+
+                                    Card(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(24.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(end = (100 - entry.count * 10).dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(
+                                                    if (entry.expectedClass == entry.predictedClass)
+                                                        PatrickPink.copy(alpha = 0.7f)
+                                                    else
+                                                        KrabRed.copy(alpha = 0.5f)
+                                                )
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Text(
+                                        text = entry.count.toString(),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Evaluations list
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = OceanBlue)
+                        }
+                    }
+                    uiState.evaluations.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No evaluations yet")
+                        }
+                    }
+                    else -> {
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            uiState.evaluations.forEach { eval ->
+                                item {
+                                    EvaluationHistoryItem(
+                                        evaluation = eval,
+                                        onClick = { },
+                                        onDelete = { viewModel.deleteEvaluation(eval.evaluationId) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = color
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+private fun EvaluationHistoryItem(
+    evaluation: com.example.spongebob.data.entity.EvaluationEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            2.dp,
+            if (evaluation.isCorrect) PatrickPink.copy(alpha = 0.5f) else KrabRed.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Thumbnail
+            Card(
+                modifier = Modifier.size(60.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                AsyncImage(
+                    model = evaluation.imageUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Info
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (evaluation.isCorrect) "✓" else "✗",
+                        color = if (evaluation.isCorrect) PatrickPink else KrabRed,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = evaluation.predictedClass,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = "Expected: ${evaluation.expectedClass}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = "${(evaluation.confidence * 100).toInt()}% confidence",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Delete",
+                    tint = KrabRed.copy(alpha = 0.7f)
+                )
             }
         }
     }

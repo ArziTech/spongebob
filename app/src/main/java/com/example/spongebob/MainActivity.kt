@@ -13,30 +13,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.spongebob.model.OnnxModelManager
-import com.example.spongebob.navigation.Camera
-import com.example.spongebob.navigation.Crop
-import com.example.spongebob.navigation.Inference
-import com.example.spongebob.navigation.Input
-import com.example.spongebob.navigation.Result
-import com.example.spongebob.navigation.Settings
-import com.example.spongebob.screens.CameraScreen
-import com.example.spongebob.screens.CropScreen
-import com.example.spongebob.screens.InferenceScreen
-import com.example.spongebob.screens.InputScreen
-import com.example.spongebob.screens.NnapiPromptScreen
-import com.example.spongebob.screens.ResultScreen
-import com.example.spongebob.screens.SettingsScreen
+import com.example.spongebob.navigation.*
+import com.example.spongebob.screens.*
 import com.example.spongebob.ui.theme.SpongebobTheme
-import com.example.spongebob.viewmodel.ClassificationViewModel
-import com.example.spongebob.viewmodel.SettingsViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spongebob.viewmodel.*
 import com.example.spongebob.data.PreferencesManager
-import com.example.spongebob.navigation.NnapiPrompt
 import kotlinx.coroutines.flow.first
 
 class MainActivity : ComponentActivity() {
@@ -63,7 +50,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     ClassificationNavHost(
                         viewModel = viewModel,
-                        preferencesManager = preferencesManager
+                        preferencesManager = preferencesManager,
+                        activity = this
                     )
                 }
             }
@@ -90,7 +78,8 @@ class ClassificationViewModelFactory(
 @Composable
 fun ClassificationNavHost(
     viewModel: ClassificationViewModel,
-    preferencesManager: PreferencesManager
+    preferencesManager: PreferencesManager,
+    activity: ComponentActivity
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsState()
@@ -114,14 +103,33 @@ fun ClassificationNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = Input
+        startDestination = MainMenu
     ) {
+        // ==================== MAIN MENU & DETECTION ROUTES ====================
+
+        // Main Menu Screen - New Start Destination
+        composable<MainMenu> {
+            MainMenuScreen(
+                onNavigateToDetect = {
+                    navController.navigate(Input)
+                },
+                onNavigateToEvaluate = {
+                    navController.navigate(EvaluationHome)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Settings)
+                },
+                onQuit = {
+                    activity.finish()
+                }
+            )
+        }
+
         // Input Screen
         composable<Input> {
             InputScreen(
                 uiState = uiState,
                 onImageSelected = { uri ->
-                    // Navigate to Crop screen instead of directly setting the image
                     navController.navigate(Crop(imageUri = uri.toString()))
                 },
                 onNavigateToCamera = {
@@ -133,7 +141,10 @@ fun ClassificationNavHost(
                 onNavigateToSettings = {
                     navController.navigate(Settings)
                 },
-                onClearError = { viewModel.clearError() }
+                onClearError = { viewModel.clearError() },
+                onBackToMainMenu = {
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -157,7 +168,6 @@ fun ClassificationNavHost(
             CameraScreen(
                 onImageCaptured = { uri ->
                     viewModel.onImageSelected(uri)
-                    // Navigate back to input, then to inference
                     navController.popBackStack()
                 },
                 onBack = {
@@ -209,14 +219,94 @@ fun ClassificationNavHost(
         composable<NnapiPrompt> {
             NnapiPromptScreen(
                 onEnable = {
-                    // Enable NNAPI
                     settingsViewModel.setUseNnapi(true)
                     settingsViewModel.markNnapiModalShown()
                     navController.popBackStack()
                 },
                 onSkip = {
-                    // Mark as shown but don't enable
                     settingsViewModel.markNnapiModalShown()
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // ==================== EVALUATION ROUTES ====================
+
+        // Evaluation Home Screen
+        composable<EvaluationHome> {
+            val evaluationViewModel: EvaluationViewModel = viewModel()
+            EvaluationHomeScreen(
+                viewModel = evaluationViewModel,
+                onNavigateToInput = {
+                    navController.navigate(EvaluationInput)
+                },
+                onNavigateToHistory = { groupId ->
+                    navController.navigate(EvaluationHistory(groupId))
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Settings)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Evaluation Input Screen
+        composable<EvaluationInput> {
+            val evaluationViewModel: EvaluationViewModel = viewModel()
+            val evalUiState by evaluationViewModel.uiState.collectAsState()
+
+            // Handle navigation when evaluation completes
+            androidx.compose.runtime.LaunchedEffect(evalUiState.lastEvaluationId) {
+                val lastId = evalUiState.lastEvaluationId
+                val groupId = evalUiState.selectedGroupId
+                if (lastId != null && groupId != null) {
+                    navController.navigate(EvaluationResult(evaluationId = lastId, groupId = groupId))
+                    evaluationViewModel.onNavigationComplete()
+                }
+            }
+
+            EvaluationInputScreen(
+                viewModel = evaluationViewModel,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Evaluation Result Screen
+        composable<EvaluationResult> { backStackEntry ->
+            val result: EvaluationResult = backStackEntry.toRoute()
+            val evaluationViewModel: EvaluationViewModel = viewModel()
+
+            EvaluationResultScreen(
+                evaluationId = result.evaluationId,
+                groupId = result.groupId,
+                viewModel = evaluationViewModel,
+                onNavigateToHistory = {
+                    navController.navigate(EvaluationHistory(result.groupId)) {
+                        popUpTo(EvaluationHome) { inclusive = false }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.popBackStack(EvaluationHome, inclusive = false)
+                },
+                onNewEvaluation = {
+                    navController.popBackStack(EvaluationInput, inclusive = false)
+                }
+            )
+        }
+
+        // Evaluation History Screen
+        composable<EvaluationHistory> { backStackEntry ->
+            val history: EvaluationHistory = backStackEntry.toRoute()
+            val historyViewModel: HistoryViewModel = viewModel()
+
+            EvaluationHistoryScreen(
+                groupId = history.groupId,
+                viewModel = historyViewModel,
+                onBack = {
                     navController.popBackStack()
                 }
             )

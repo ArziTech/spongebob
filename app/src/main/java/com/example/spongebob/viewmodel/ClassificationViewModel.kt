@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlin.system.measureTimeMillis
 
 // UI State for classification
@@ -29,6 +30,7 @@ data class ClassificationResult(
     val useNnapi: Boolean = false  // Whether NNAPI hardware acceleration was used
 )
 
+@Serializable
 data class Prediction(
     val className: String,
     val confidence: Float
