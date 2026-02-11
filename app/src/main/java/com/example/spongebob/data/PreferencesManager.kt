@@ -17,8 +17,8 @@ class PreferencesManager(private val context: Context) {
     companion object {
         // Preference keys
         val SHOW_INFERENCE_TIME_KEY = booleanPreferencesKey("show_inference_time")
-        val USE_NNAPI_KEY = booleanPreferencesKey("use_nnapi")
-        val NNAPI_MODAL_SHOWN_KEY = booleanPreferencesKey("nnapi_modal_shown")
+        val USE_GPU_KEY = booleanPreferencesKey("use_gpu")
+        val GPU_MODAL_SHOWN_KEY = booleanPreferencesKey("gpu_modal_shown")
     }
 
     // Flow for show inference time preference
@@ -26,14 +26,14 @@ class PreferencesManager(private val context: Context) {
         preferences[SHOW_INFERENCE_TIME_KEY] ?: true // Default: true (show inference time)
     }
 
-    // Flow for NNAPI preference
-    val useNnapi: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[USE_NNAPI_KEY] ?: false // Default: false (CPU for compatibility)
+    // Flow for GPU preference
+    val useGpu: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[USE_GPU_KEY] ?: false // Default: false (CPU for compatibility)
     }
 
-    // Flow for NNAPI modal shown flag
-    val nnapiModalShown: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[NNAPI_MODAL_SHOWN_KEY] ?: false // Default: false (not shown yet)
+    // Flow for GPU modal shown flag
+    val gpuModalShown: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[GPU_MODAL_SHOWN_KEY] ?: false // Default: false (not shown yet)
     }
 
     // Save show inference time preference
@@ -43,17 +43,17 @@ class PreferencesManager(private val context: Context) {
         }
     }
 
-    // Save NNAPI preference
-    suspend fun setUseNnapi(use: Boolean) {
+    // Save GPU preference
+    suspend fun setUseGpu(use: Boolean) {
         context.dataStore.edit { preferences ->
-            preferences[USE_NNAPI_KEY] = use
+            preferences[USE_GPU_KEY] = use
         }
     }
 
-    // Mark NNAPI modal as shown
-    suspend fun setNnapiModalShown() {
+    // Mark GPU modal as shown
+    suspend fun setGpuModalShown() {
         context.dataStore.edit { preferences ->
-            preferences[NNAPI_MODAL_SHOWN_KEY] = true
+            preferences[GPU_MODAL_SHOWN_KEY] = true
         }
     }
 }

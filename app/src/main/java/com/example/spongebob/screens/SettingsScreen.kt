@@ -1,6 +1,5 @@
 package com.example.spongebob.screens
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,7 +49,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel()
 ) {
     val showInferenceTime by viewModel.showInferenceTime.collectAsState()
-    val useNnapi by viewModel.useNnapi.collectAsState()
+    val useGpu by viewModel.useGpu.collectAsState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -118,24 +117,22 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Performance Settings Section (only shown on API 27+)
-                if (Build.VERSION.SDK_INT >= 27) {
-                    Text(
-                        text = "Performance",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                    )
+                // Performance Settings Section
+                Text(
+                    text = "Performance",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
 
-                    // NNAPI Toggle
-                    SettingsToggleCard(
-                        title = "Hardware Acceleration",
-                        description = "Use NNAPI for faster AI inference (may cause issues on some devices)",
-                        icon = "⚡",
-                        isChecked = useNnapi,
-                        onCheckedChange = { viewModel.setUseNnapi(it) }
-                    )
-                }
+                // GPU Toggle
+                SettingsToggleCard(
+                    title = "Hardware Acceleration",
+                    description = "Use GPU for faster AI inference (may cause issues on some devices)",
+                    icon = "⚡",
+                    isChecked = useGpu,
+                    onCheckedChange = { viewModel.setUseGpu(it) }
+                )
 
                 // App Info Card
                 Card(
@@ -157,7 +154,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "AI-powered image classification using ONNX Runtime",
+                            text = "AI-powered image classification using TensorFlow Lite",
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )

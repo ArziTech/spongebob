@@ -35,9 +35,9 @@ data class Result(
 @Serializable
 object Settings
 
-// NNAPI Prompt (existing)
+// GPU Prompt (existing)
 @Serializable
-object NnapiPrompt
+object GpuPrompt
 
 // ==================== EVALUATION ROUTES ====================
 

@@ -21,8 +21,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             initialValue = true
         )
 
-    // NNAPI preference as StateFlow
-    val useNnapi: StateFlow<Boolean> = preferencesManager.useNnapi
+    // GPU preference as StateFlow
+    val useGpu: StateFlow<Boolean> = preferencesManager.useGpu
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -36,17 +36,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Update NNAPI preference
-    fun setUseNnapi(use: Boolean) {
+    // Update GPU preference
+    fun setUseGpu(use: Boolean) {
         viewModelScope.launch {
-            preferencesManager.setUseNnapi(use)
+            preferencesManager.setUseGpu(use)
         }
     }
 
-    // Mark NNAPI modal as shown
-    fun markNnapiModalShown() {
+    // Mark GPU modal as shown
+    fun markGpuModalShown() {
         viewModelScope.launch {
-            preferencesManager.setNnapiModalShown()
+            preferencesManager.setGpuModalShown()
         }
     }
 }

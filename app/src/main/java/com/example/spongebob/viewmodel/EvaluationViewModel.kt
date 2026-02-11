@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.spongebob.data.entity.EvaluationEntity
 import com.example.spongebob.data.entity.EvaluationGroupEntity
 import com.example.spongebob.data.repository.EvaluationRepository
-import com.example.spongebob.model.OnnxModelManager
+import com.example.spongebob.model.TFLiteModelManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +32,7 @@ data class EvaluationUiState(
 class EvaluationViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = EvaluationRepository(application)
-    private val onnxModelManager = OnnxModelManager(application)
+    private val tfLiteModelManager = TFLiteModelManager(application)
 
     private val _uiState = MutableStateFlow(EvaluationUiState())
     val uiState: StateFlow<EvaluationUiState> = _uiState.asStateFlow()
@@ -45,8 +45,8 @@ class EvaluationViewModel(application: Application) : AndroidViewModel(applicati
     private fun initializeModel() {
         viewModelScope.launch {
             try {
-                if (!onnxModelManager.isInitialized) {
-                    onnxModelManager.initialize()
+                if (!tfLiteModelManager.isInitialized) {
+                    tfLiteModelManager.initialize()
                 }
             } catch (e: Exception) {
                 // Handle model initialization error
@@ -136,7 +136,7 @@ class EvaluationViewModel(application: Application) : AndroidViewModel(applicati
         val expectedClass = _uiState.value.expectedClass
         val groupId = _uiState.value.selectedGroupId ?: return
 
-        if (!onnxModelManager.isInitialized) {
+        if (!tfLiteModelManager.isInitialized) {
             return
         }
 
@@ -144,7 +144,7 @@ class EvaluationViewModel(application: Application) : AndroidViewModel(applicati
             _uiState.update { it.copy(isProcessing = true) }
 
             try {
-                val result = onnxModelManager.runInference(uri)
+                val result = tfLiteModelManager.runInference(uri)
                 val inferenceTime = result.inferenceTimeMillis
 
                 val isCorrect = result.className == expectedClass
@@ -194,10 +194,10 @@ class EvaluationViewModel(application: Application) : AndroidViewModel(applicati
 
     override fun onCleared() {
         super.onCleared()
-        onnxModelManager.close()
+        tfLiteModelManager.close()
     }
 
     fun getClassLabels(): List<String> {
-        return OnnxModelManager.CLASS_LABELS
+        return TFLiteModelManager.CLASS_LABELS
     }
 }

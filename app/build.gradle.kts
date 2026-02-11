@@ -63,8 +63,9 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
 
-    // ONNX Runtime
-    implementation(libs.onnxruntime.android)
+    // TensorFlow Lite
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.support)
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)

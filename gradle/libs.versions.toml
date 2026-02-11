@@ -12,7 +12,8 @@ composeBom = "2024.09.00"
 coil = "2.7.0"
 navigationCompose = "2.8.3"
 camerax = "1.4.0"
-onnxruntime = "1.19.2"
+tflite = "2.14.0"
+tfliteSupport = "0.4.4"
 datastore = "1.1.1"
 room = "2.6.1"
 vico = "2.0.0-beta.2"
@@ -47,8 +48,9 @@ androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", 
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 
-# ONNX Runtime
-onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxruntime" }
+# TensorFlow Lite
+tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tflite" }
+tensorflow-lite-support = { group = "org.tensorflow", name = "tensorflow-lite-support", version.ref = "tfliteSupport" }
 
 # DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }

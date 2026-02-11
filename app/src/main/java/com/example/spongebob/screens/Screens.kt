@@ -1646,43 +1646,100 @@ fun ResultScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Inference time and hardware display
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Hardware indicator
+                // Performance metrics card
+                if (showInferenceTime) {
                     Card(
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (result.useNnapi) PatrickPink.copy(alpha = 0.15f) else OceanBlue.copy(alpha = 0.15f)
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
                         )
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = if (result.useNnapi) "⚡" else "💻",
-                                fontSize = 16.sp
+                                text = "📊 Performance Metrics",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
-                            Text(
-                                text = if (result.useNnapi) "NNAPI" else "CPU",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (result.useNnapi) PatrickPink else OceanBlue
-                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                // Inference Time
+                                MetricItem(
+                                    icon = "⏱️",
+                                    label = "Time",
+                                    value = "${result.inferenceTimeMillis}ms",
+                                    color = OceanBlue
+                                )
+
+                                // CPU Usage
+                                MetricItem(
+                                    icon = "💻",
+                                    label = "CPU",
+                                    value = "${result.cpuUsagePercent.toInt()}%",
+                                    color = if (result.cpuUsagePercent > 80) KrabRed else PatrickPink
+                                )
+
+                                // Memory Usage
+                                MetricItem(
+                                    icon = "🧠",
+                                    label = "Memory",
+                                    value = "${result.memoryUsedMB}MB",
+                                    color = SpongeYellowDark
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Hardware indicator
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (result.useNnapi) "⚡" else "💻",
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Running on ${if (result.useNnapi) "Hardware Accelerated" else "CPU"}",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "•",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Total: ${result.memoryTotalMB}MB",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
-
-                    // Inference time (conditional based on settings)
-                    if (showInferenceTime && result.inferenceTimeMillis > 0) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    // Simplified hardware indicator when metrics are hidden
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Card(
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = OceanBlue.copy(alpha = 0.15f)
+                                containerColor = if (result.useNnapi) PatrickPink.copy(alpha = 0.15f) else OceanBlue.copy(alpha = 0.15f)
                             )
                         ) {
                             Row(
@@ -1691,14 +1748,14 @@ fun ResultScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "⏱️",
+                                    text = if (result.useNnapi) "⚡" else "💻",
                                     fontSize = 16.sp
                                 )
                                 Text(
-                                    text = "${result.inferenceTimeMillis}ms",
+                                    text = if (result.useNnapi) "GPU" else "CPU",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = OceanBlue
+                                    color = if (result.useNnapi) PatrickPink else OceanBlue
                                 )
                             }
                         }
@@ -1819,9 +1876,39 @@ fun PredictionRow(
     }
 }
 
-// ==================== NNAPI PROMPT SCREEN ====================
+// ==================== METRIC ITEM ====================
 @Composable
-fun NnapiPromptScreen(
+fun MetricItem(
+    icon: String,
+    label: String,
+    value: String,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = icon,
+            fontSize = 24.sp
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
+}
+
+// ==================== GPU PROMPT SCREEN ====================
+@Composable
+fun GpuPromptScreen(
     onEnable: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -1875,7 +1962,7 @@ fun NnapiPromptScreen(
 
                 // Description
                 Text(
-                    text = "Your device supports NNAPI for faster AI inference. This can significantly speed up image classification.",
+                    text = "Your device supports GPU for faster AI inference. This can significantly speed up image classification.",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center

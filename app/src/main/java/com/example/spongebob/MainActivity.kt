@@ -1,7 +1,6 @@
 package com.example.spongebob
 
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,7 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.spongebob.model.OnnxModelManager
+import com.example.spongebob.model.TFLiteModelManager
 import com.example.spongebob.navigation.*
 import com.example.spongebob.screens.*
 import com.example.spongebob.ui.theme.SpongebobTheme
@@ -31,11 +30,11 @@ class MainActivity : ComponentActivity() {
     // Use lazy initialization to avoid NPE during activity construction
     private val preferencesManager by lazy { PreferencesManager(applicationContext) }
 
-    // We'll initialize viewModel with false initially, then update when NNAPI setting changes
+    // We'll initialize viewModel with false initially, then update when GPU setting changes
     private val viewModel: ClassificationViewModel by lazy {
         ClassificationViewModelFactory(
             applicationContext,
-            useNnapi = false
+            useGpu = false
         ).create(ClassificationViewModel::class.java)
     }
 
@@ -62,13 +61,13 @@ class MainActivity : ComponentActivity() {
 // ViewModel Factory
 class ClassificationViewModelFactory(
     private val context: Context,
-    private val useNnapi: Boolean = false
+    private val useGpu: Boolean = false
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ClassificationViewModel::class.java)) {
-            val onnxModelManager = OnnxModelManager(context, useNnapi)
-            return ClassificationViewModel(onnxModelManager) as T
+            val tfLiteModelManager = TFLiteModelManager(context, useGpu)
+            return ClassificationViewModel(context, tfLiteModelManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
@@ -86,17 +85,15 @@ fun ClassificationNavHost(
     val settingsViewModel: SettingsViewModel = viewModel()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Check for NNAPI modal on first navigation to Input screen
+    // Check for GPU modal on first navigation to Input screen
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 27) {
-            val modalShown = preferencesManager.nnapiModalShown.first()
-            if (!modalShown) {
-                // Check if device supports NNAPI
-                val onnxModel = OnnxModelManager(context)
-                val nnapiSupported = onnxModel.isNnapiSupported()
-                if (nnapiSupported) {
-                    navController.navigate(NnapiPrompt)
-                }
+        val modalShown = preferencesManager.gpuModalShown.first()
+        if (!modalShown) {
+            // Check if device supports GPU
+            val tfLiteModel = TFLiteModelManager(context)
+            val gpuSupported = tfLiteModel.isGpuSupported()
+            if (gpuSupported) {
+                navController.navigate(GpuPrompt)
             }
         }
     }
@@ -215,16 +212,16 @@ fun ClassificationNavHost(
             )
         }
 
-        // NNAPI Prompt Modal (one-time)
-        composable<NnapiPrompt> {
-            NnapiPromptScreen(
+        // GPU Prompt Modal (one-time)
+        composable<GpuPrompt> {
+            GpuPromptScreen(
                 onEnable = {
-                    settingsViewModel.setUseNnapi(true)
-                    settingsViewModel.markNnapiModalShown()
+                    settingsViewModel.setUseGpu(true)
+                    settingsViewModel.markGpuModalShown()
                     navController.popBackStack()
                 },
                 onSkip = {
-                    settingsViewModel.markNnapiModalShown()
+                    settingsViewModel.markGpuModalShown()
                     navController.popBackStack()
                 }
             )
