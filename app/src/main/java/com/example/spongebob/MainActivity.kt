@@ -10,10 +10,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -95,8 +97,17 @@ fun ClassificationNavHost(
     // Model Manager for accessing model configurations
     val modelManager = ModelManager(context)
 
+    // Factory for ModelSelectionViewModel - use activity's application context
+    val modelSelectionViewModelFactory = androidx.compose.runtime.remember(preferencesManager) {
+        ModelSelectionViewModelFactory(
+            context = activity.applicationContext,
+            preferencesManager = preferencesManager
+        )
+    }
+
     // State for current model name
-    var currentModelName by mutableStateOf("Loading...")
+    val currentModelName = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("Loading...") }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Check for GPU modal on first navigation to Input screen
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -113,14 +124,14 @@ fun ClassificationNavHost(
 
     // Load current model name
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        rememberCoroutineScope().launch {
+        coroutineScope.launch {
             try {
                 val selectedModelId = preferencesManager.selectedModelId.first()
                 modelManager.loadModelConfigs()
                 val config = modelManager.getModelConfig(selectedModelId ?: "small_3class")
-                currentModelName = config?.name ?: "Unknown Model"
+                currentModelName.value = config?.name ?: "Unknown Model"
             } catch (e: Exception) {
-                currentModelName = "Small Classifier (3 classes)"
+                currentModelName.value = "Small Classifier (3 classes)"
             }
         }
     }
@@ -134,7 +145,7 @@ fun ClassificationNavHost(
         // Main Menu Screen - New Start Destination
         composable<MainMenu> {
             MainMenuScreen(
-                currentModelName = currentModelName,
+                currentModelName = currentModelName.value,
                 onNavigateToDetect = {
                     navController.navigate(Input)
                 },
@@ -248,7 +259,7 @@ fun ClassificationNavHost(
 
         // Model List Screen
         composable<com.example.spongebob.navigation.ModelList> {
-            val modelSelectionViewModel: ModelSelectionViewModel = viewModel()
+            val modelSelectionViewModel: ModelSelectionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = modelSelectionViewModelFactory)
             ModelListScreen(
                 onNavigateBack = {
                     navController.popBackStack()
@@ -262,7 +273,7 @@ fun ClassificationNavHost(
         // Model Detail Screen
         composable<com.example.spongebob.navigation.ModelDetail> { backStackEntry ->
             val modelDetail: com.example.spongebob.navigation.ModelDetail = backStackEntry.toRoute()
-            val modelSelectionViewModel: ModelSelectionViewModel = viewModel()
+            val modelSelectionViewModel: ModelSelectionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = modelSelectionViewModelFactory)
             ModelDetailScreen(
                 modelId = modelDetail.modelId,
                 onNavigateBack = {

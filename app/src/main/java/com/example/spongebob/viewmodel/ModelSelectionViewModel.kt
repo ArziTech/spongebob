@@ -1,7 +1,9 @@
 package com.example.spongebob.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.spongebob.data.PreferencesManager
 import com.example.spongebob.model.ModelConfig
@@ -102,5 +104,26 @@ class ModelSelectionViewModel(
      */
     fun refresh() {
         loadModels()
+    }
+}
+
+/**
+ * Factory for creating ModelSelectionViewModel instances
+ */
+class ModelSelectionViewModelFactory(
+    private val context: Context,
+    private val preferencesManager: PreferencesManager
+) : ViewModelProvider.Factory {
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ModelSelectionViewModel::class.java)) {
+            val application = context.applicationContext as Application
+            return ModelSelectionViewModel(
+                application = application,
+                preferencesManager = preferencesManager
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }

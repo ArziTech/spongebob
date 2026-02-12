@@ -7,7 +7,17 @@ import kotlinx.serialization.Serializable
  */
 enum class ModelType {
     TFLITE,
-    ONNX
+    ONNX;
+
+    companion object {
+        fun fromString(value: String): ModelType {
+            return when (value.lowercase()) {
+                "tflite" -> TFLITE
+                "onnx" -> ONNX
+                else -> TFLITE // default
+            }
+        }
+    }
 }
 
 /**
@@ -30,14 +40,22 @@ data class ModelConfig(
     val type: ModelType,
     val inputSize: Int,
     val classes: List<String>
-)
-
-/**
- * Root configuration containing all available models
- *
- * @property models List of model configurations
- */
-@Serializable
-data class ModelsConfig(
-    val models: List<ModelConfig>
-)
+) {
+    companion object {
+        /**
+         * Create ModelConfig from a map (for YAML parsing)
+         */
+        fun fromMap(map: Map<String, Any>): ModelConfig {
+            val typeString = map["type"] as? String ?: "tflite"
+            return ModelConfig(
+                id = map["id"] as? String ?: "",
+                file = map["file"] as? String ?: "",
+                name = map["name"] as? String ?: "",
+                description = map["description"] as? String ?: "",
+                type = ModelType.fromString(typeString),
+                inputSize = (map["inputSize"] as? Number)?.toInt() ?: 640,
+                classes = (map["classes"] as? List<*>)?.map { it as? String ?: "" } ?: emptyList()
+            )
+        }
+    }
+}

@@ -39,12 +39,20 @@ class ModelManager(private val context: Context) {
         try {
             val inputStream: InputStream = context.assets.open(MODELS_YAML_FILE)
             val yaml = Yaml()
-            val config = yaml.loadAs<ModelsConfig>(inputStream) ?: throw RuntimeException("Failed to parse YAML")
+            val configMap = yaml.load<Map<String, Any>>(inputStream) ?: throw RuntimeException("Failed to parse YAML")
 
-            cachedConfigs = config.models
-            Log.d(TAG, "Loaded ${config.models.size} model configurations")
+            @Suppress("UNCHECKED_CAST")
+            val modelsList = configMap["models"] as? List<Map<String, Any>>
+                ?: throw RuntimeException("Invalid YAML format: 'models' key not found")
 
-            config.models
+            val configs = modelsList.map { modelMap ->
+                ModelConfig.fromMap(modelMap)
+            }
+
+            cachedConfigs = configs
+            Log.d(TAG, "Loaded ${configs.size} model configurations")
+
+            configs
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model configurations", e)
             throw RuntimeException("Failed to load models.yaml: ${e.message}", e)
