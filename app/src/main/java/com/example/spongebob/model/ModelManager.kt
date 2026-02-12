@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.yaml.snakeyaml.Yaml
-import org.yaml.snakeyaml.constructor.Constructor
 import java.io.InputStream
 
 /**
@@ -39,8 +38,8 @@ class ModelManager(private val context: Context) {
 
         try {
             val inputStream: InputStream = context.assets.open(MODELS_YAML_FILE)
-            val yaml = Yaml(Constructor(ModelsConfig::class.java))
-            val config = yaml.load(inputStream) as ModelsConfig
+            val yaml = Yaml()
+            val config = yaml.loadAs<ModelsConfig>(inputStream) ?: throw RuntimeException("Failed to parse YAML")
 
             cachedConfigs = config.models
             Log.d(TAG, "Loaded ${config.models.size} model configurations")

@@ -96,9 +96,11 @@ fun ClassificationNavHost(
 
     // State for current model name
     var currentModelName by androidx.compose.runtime.mutableStateOf("Loading...")
+
+    // Check for GPU modal on first navigation to Input screen
     androidx.compose.runtime.LaunchedEffect(Unit) {
+        // Get current model name
         androidx.compose.runtime.rememberCoroutineScope().launch {
-            // Get current model name
             try {
                 val selectedModelId = preferencesManager.selectedModelId.first()
                 modelManager.loadModelConfigs()
@@ -108,10 +110,8 @@ fun ClassificationNavHost(
                 currentModelName = "Small Classifier (3 classes)"
             }
         }
-    }
 
-    // Check for GPU modal on first navigation to Input screen
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val modalShown = preferencesManager.gpuModalShown.first()
         val modalShown = preferencesManager.gpuModalShown.first()
         if (!modalShown) {
             // Check if device supports GPU
