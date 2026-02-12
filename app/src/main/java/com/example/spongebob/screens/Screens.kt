@@ -107,6 +107,12 @@ import com.example.spongebob.ui.theme.PatrickPink
 import com.example.spongebob.ui.theme.SeaFoam
 import com.example.spongebob.ui.theme.SquidwardTeal
 import com.example.spongebob.viewmodel.SettingsViewModel
+import com.example.spongebob.model.TFLiteModelManager
+import com.example.spongebob.model.ModelInfo
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
 // ==================== UNDERWATER BACKGROUND WITH BUBBLES ====================
 @Composable
@@ -238,9 +244,11 @@ fun SpongeBobButton(
 // ==================== MAIN MENU SCREEN ====================
 @Composable
 fun MainMenuScreen(
+    currentModelName: String = "Small Classifier (3 classes)",
     onNavigateToDetect: () -> Unit,
     onNavigateToEvaluate: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToModelInfo: () -> Unit,
     onQuit: () -> Unit
 ) {
     UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
@@ -312,7 +320,15 @@ fun MainMenuScreen(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Current: $currentModelName",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+
+                Spacer(modifier = Modifier.height(44.dp))
 
                 // Main Menu Options
                 MainMenuOptionCard(
@@ -331,6 +347,16 @@ fun MainMenuScreen(
                     description = "Test accuracy with ground truth",
                     backgroundColor = PatrickPink,
                     onClick = onNavigateToEvaluate
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MainMenuOptionCard(
+                    icon = "🧠",
+                    title = "Model Info",
+                    description = "View model architecture and details",
+                    backgroundColor = SquidwardTeal,
+                    onClick = onNavigateToModelInfo
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -3143,5 +3169,393 @@ private fun EvaluationHistoryItem(
                 )
             }
         }
+    }
+}
+
+// ==================== MODEL INFO SCREEN ====================
+@Composable
+fun ModelInfoScreen(
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    var modelInfo by remember { mutableStateOf<ModelInfo?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Load model info
+    LaunchedEffect(Unit) {
+        try {
+            val modelManager = TFLiteModelManager(context)
+            modelManager.initialize()
+            modelInfo = modelManager.getModelInfo()
+            modelManager.close()
+        } catch (e: Exception) {
+            errorMessage = "Failed to load model info: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    UnderwaterBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = OceanBlue
+                            )
+                        }
+                        Text(
+                            text = "Model Information",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = OceanBlue
+                        )
+                    }
+                }
+            }
+        ) { paddingValues ->
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = OceanBlue)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading model information...",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                errorMessage != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Card(
+                            modifier = Modifier.padding(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = KrabRed.copy(alpha = 0.1f)),
+                            border = BorderStroke(2.dp, KrabRed)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(text = "❌", fontSize = 48.sp)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Error Loading Model",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KrabRed
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = errorMessage ?: "Unknown error",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+                modelInfo != null -> {
+                    ModelInfoContent(
+                        modelInfo = modelInfo!!,
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ModelInfoContent(
+    modelInfo: ModelInfo,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Model Header Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = OceanBlue.copy(alpha = 0.1f)
+            ),
+            border = BorderStroke(2.dp, OceanBlue.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Card(
+                    modifier = Modifier.size(64.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = OceanBlue)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "🧠", fontSize = 32.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "TensorFlow Lite Model",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OceanBlue
+                    )
+                    Text(
+                        text = modelInfo.modelFileName,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+
+        // File Information Section
+        ModelInfoSection(
+            title = "File Information",
+            icon = "📁"
+        ) {
+            ModelInfoRow(label = "File Name", value = modelInfo.modelFileName)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "File Size", value = modelInfo.modelFileSizeFormatted)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Est. Parameters", value = modelInfo.totalParametersFormatted)
+        }
+
+        // Input Tensor Section
+        ModelInfoSection(
+            title = "Input Tensor",
+            icon = "📥"
+        ) {
+            ModelInfoRow(label = "Shape", value = "[${modelInfo.inputShape.joinToString(", ")}]")
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Data Type", value = modelInfo.inputDataType)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Format", value = modelInfo.inputFormat)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Dimensions", value = "${modelInfo.inputWidth} × ${modelInfo.inputHeight} × ${modelInfo.inputChannels}")
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Batch Size", value = modelInfo.batchSize.toString())
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Size in Memory", value = modelInfo.inputSizeFormatted)
+        }
+
+        // Output Tensor Section
+        ModelInfoSection(
+            title = "Output Tensor",
+            icon = "📤"
+        ) {
+            ModelInfoRow(label = "Shape", value = "[${modelInfo.outputShape.joinToString(", ")}]")
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Data Type", value = modelInfo.outputDataType)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Classes", value = modelInfo.outputClasses.toString())
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "Size in Memory", value = modelInfo.outputSizeFormatted)
+        }
+
+        // Class Labels Section
+        ModelInfoSection(
+            title = "Class Labels",
+            icon = "🏷️"
+        ) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                modelInfo.classLabels.forEachIndexed { index, label ->
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when (index) {
+                                0 -> PatrickPink.copy(alpha = 0.15f)
+                                1 -> SpongeYellow.copy(alpha = 0.15f)
+                                else -> OceanBlue.copy(alpha = 0.15f)
+                            }
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            when (index) {
+                                0 -> PatrickPink.copy(alpha = 0.3f)
+                                1 -> SpongeYellow.copy(alpha = 0.3f)
+                                else -> OceanBlue.copy(alpha = 0.3f)
+                            }
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${index + 1}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (index) {
+                                    0 -> PatrickPink
+                                    1 -> SpongeYellowDark
+                                    else -> OceanBlue
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = label,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Runtime Configuration Section
+        ModelInfoSection(
+            title = "Runtime Configuration",
+            icon = "⚙️"
+        ) {
+            ModelInfoRow(label = "Number of Threads", value = modelInfo.numThreads.toString())
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(
+                label = "Hardware Acceleration",
+                value = if (modelInfo.useGpu && modelInfo.isGpuSupported) "GPU Enabled" else "CPU Only",
+                valueColor = if (modelInfo.useGpu && modelInfo.isGpuSupported) PatrickPink else MaterialTheme.colorScheme.onSurface
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ModelInfoRow(label = "GPU Supported", value = if (modelInfo.isGpuSupported) "Yes" else "No")
+        }
+
+        // TFLite Version Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = SpongeYellow.copy(alpha = 0.1f)
+            ),
+            border = BorderStroke(2.dp, SpongeYellow.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "📦", fontSize = 24.sp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "TensorFlow Lite Runtime",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SpongeYellowDark
+                    )
+                    Text(
+                        text = "Version ${TFLiteModelManager.TFLITE_VERSION}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+
+        // Spacer for bottom padding
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun ModelInfoSection(
+    title: String,
+    icon: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Text(text = icon, fontSize = 20.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OceanBlue
+                )
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ModelInfoRow(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = valueColor
+        )
     }
 }

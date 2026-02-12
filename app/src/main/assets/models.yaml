@@ -1,0 +1,11 @@
+models:
+  - id: "small_3class"
+    file: "small.tflite"
+    name: "Small Classifier (3 classes)"
+    description: "Lightweight model for quick inference"
+    type: "tflite"
+    inputSize: 640
+    classes:
+      - "Sehat"
+      - "Sedang"
+      - "Parah"

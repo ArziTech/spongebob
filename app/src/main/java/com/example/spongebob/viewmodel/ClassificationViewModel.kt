@@ -7,6 +7,7 @@ import android.os.Process
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spongebob.model.TFLiteModelManager
+import com.example.spongebob.data.PreferencesManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,7 +46,8 @@ data class Prediction(
 
 class ClassificationViewModel(
     private val context: Context,
-    private val tfLiteModelManager: TFLiteModelManager
+    private val tfLiteModelManager: TFLiteModelManager,
+    private val preferencesManager: PreferencesManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ClassificationUiState())

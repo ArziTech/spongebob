@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -18,12 +19,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.spongebob.model.TFLiteModelManager
+import com.example.spongebob.model.ModelManager
 import com.example.spongebob.navigation.*
 import com.example.spongebob.screens.*
+import com.example.spongebob.screens.model.ModelListScreen
+import com.example.spongebob.screens.model.ModelDetailScreen
 import com.example.spongebob.ui.theme.SpongebobTheme
 import com.example.spongebob.viewmodel.*
 import com.example.spongebob.data.PreferencesManager
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -85,6 +91,25 @@ fun ClassificationNavHost(
     val settingsViewModel: SettingsViewModel = viewModel()
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    // Model Manager for accessing model configurations
+    val modelManager = ModelManager(context)
+
+    // State for current model name
+    var currentModelName by androidx.compose.runtime.mutableStateOf("Loading...")
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        androidx.compose.runtime.rememberCoroutineScope().launch {
+            // Get current model name
+            try {
+                val selectedModelId = preferencesManager.selectedModelId.first()
+                modelManager.loadModelConfigs()
+                val config = modelManager.getModelConfig(selectedModelId ?: "small_3class")
+                currentModelName = config?.name ?: "Unknown Model"
+            } catch (e: Exception) {
+                currentModelName = "Small Classifier (3 classes)"
+            }
+        }
+    }
+
     // Check for GPU modal on first navigation to Input screen
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val modalShown = preferencesManager.gpuModalShown.first()
@@ -107,6 +132,7 @@ fun ClassificationNavHost(
         // Main Menu Screen - New Start Destination
         composable<MainMenu> {
             MainMenuScreen(
+                currentModelName = currentModelName,
                 onNavigateToDetect = {
                     navController.navigate(Input)
                 },
@@ -115,6 +141,9 @@ fun ClassificationNavHost(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Settings)
+                },
+                onNavigateToModelInfo = {
+                    navController.navigate(com.example.spongebob.navigation.ModelInfo)
                 },
                 onQuit = {
                     activity.finish()
@@ -208,6 +237,37 @@ fun ClassificationNavHost(
             SettingsScreen(
                 onBack = {
                     navController.popBackStack()
+                },
+                onNavigateToModelList = {
+                    navController.navigate(com.example.spongebob.navigation.ModelList)
+                }
+            )
+        }
+
+        // Model List Screen
+        composable<com.example.spongebob.navigation.ModelList> {
+            val modelSelectionViewModel: ModelSelectionViewModel = viewModel()
+            ModelListScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onModelClick = { modelId ->
+                    navController.navigate(com.example.spongebob.navigation.ModelDetail(modelId))
+                }
+            )
+        }
+
+        // Model Detail Screen
+        composable<com.example.spongebob.navigation.ModelDetail> { backStackEntry ->
+            val modelDetail: com.example.spongebob.navigation.ModelDetail = backStackEntry.toRoute()
+            val modelSelectionViewModel: ModelSelectionViewModel = viewModel()
+            ModelDetailScreen(
+                modelId = modelDetail.modelId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onUseModel = {
+                    navController.popBackStack(com.example.spongebob.navigation.Settings, inclusive = false)
                 }
             )
         }
@@ -222,6 +282,15 @@ fun ClassificationNavHost(
                 },
                 onSkip = {
                     settingsViewModel.markGpuModalShown()
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Model Info Screen
+        composable<com.example.spongebob.navigation.ModelInfo> {
+            ModelInfoScreen(
+                onBack = {
                     navController.popBackStack()
                 }
             )

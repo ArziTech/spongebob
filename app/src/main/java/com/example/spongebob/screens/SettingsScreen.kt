@@ -46,6 +46,7 @@ import com.example.spongebob.viewmodel.SettingsViewModel
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateToModelList: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel()
 ) {
     val showInferenceTime by viewModel.showInferenceTime.collectAsState()
@@ -98,7 +99,32 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Model Configuration Section
+                Text(
+                    text = "Model Configuration",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+
+                // Change Model Button
+                SettingsButtonCard(
+                    title = "Change Model",
+                    description = "Switch between different AI models",
+                    icon = "🧠",
+                    backgroundColor = PatrickPink,
+                    onClick = onNavigateToModelList
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // Display Settings Section
+                Text(
+                    text = "Display",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
                 Text(
                     text = "Display",
                     fontSize = 14.sp,
@@ -231,6 +257,58 @@ fun SettingsToggleCard(
                     uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 )
             )
+        }
+    }
+}
+
+// ==================== SETTINGS BUTTON CARD ====================
+@Composable
+fun SettingsButtonCard(
+    title: String,
+    description: String,
+    icon: String,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor.copy(alpha = 0.15f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            backgroundColor.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = icon,
+                fontSize = 28.sp
+            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = description,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }

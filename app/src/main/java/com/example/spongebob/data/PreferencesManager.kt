@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,6 +20,7 @@ class PreferencesManager(private val context: Context) {
         val SHOW_INFERENCE_TIME_KEY = booleanPreferencesKey("show_inference_time")
         val USE_GPU_KEY = booleanPreferencesKey("use_gpu")
         val GPU_MODAL_SHOWN_KEY = booleanPreferencesKey("gpu_modal_shown")
+        val SELECTED_MODEL_ID_KEY = stringPreferencesKey("selected_model_id")
     }
 
     // Flow for show inference time preference
@@ -34,6 +36,11 @@ class PreferencesManager(private val context: Context) {
     // Flow for GPU modal shown flag
     val gpuModalShown: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[GPU_MODAL_SHOWN_KEY] ?: false // Default: false (not shown yet)
+    }
+
+    // Flow for selected model ID
+    val selectedModelId: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[SELECTED_MODEL_ID_KEY] ?: "small_3class" // Default: small_3class
     }
 
     // Save show inference time preference
@@ -54,6 +61,13 @@ class PreferencesManager(private val context: Context) {
     suspend fun setGpuModalShown() {
         context.dataStore.edit { preferences ->
             preferences[GPU_MODAL_SHOWN_KEY] = true
+        }
+    }
+
+    // Save selected model ID
+    suspend fun setSelectedModelId(id: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SELECTED_MODEL_ID_KEY] = id
         }
     }
 }

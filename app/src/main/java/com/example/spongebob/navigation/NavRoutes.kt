@@ -39,6 +39,18 @@ object Settings
 @Serializable
 object GpuPrompt
 
+// Model Info (new)
+@Serializable
+object ModelInfo
+
+// Model List
+@Serializable
+object ModelList
+
+// Model Detail
+@Serializable
+data class ModelDetail(val modelId: String)
+
 // ==================== EVALUATION ROUTES ====================
 
 // Evaluation Home/Dashboard
