@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -95,23 +96,10 @@ fun ClassificationNavHost(
     val modelManager = ModelManager(context)
 
     // State for current model name
-    var currentModelName by androidx.compose.runtime.mutableStateOf("Loading...")
+    var currentModelName by mutableStateOf("Loading...")
 
     // Check for GPU modal on first navigation to Input screen
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        // Get current model name
-        androidx.compose.runtime.rememberCoroutineScope().launch {
-            try {
-                val selectedModelId = preferencesManager.selectedModelId.first()
-                modelManager.loadModelConfigs()
-                val config = modelManager.getModelConfig(selectedModelId ?: "small_3class")
-                currentModelName = config?.name ?: "Unknown Model"
-            } catch (e: Exception) {
-                currentModelName = "Small Classifier (3 classes)"
-            }
-        }
-
-        val modalShown = preferencesManager.gpuModalShown.first()
         val modalShown = preferencesManager.gpuModalShown.first()
         if (!modalShown) {
             // Check if device supports GPU
@@ -119,6 +107,20 @@ fun ClassificationNavHost(
             val gpuSupported = tfLiteModel.isGpuSupported()
             if (gpuSupported) {
                 navController.navigate(GpuPrompt)
+            }
+        }
+    }
+
+    // Load current model name
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        rememberCoroutineScope().launch {
+            try {
+                val selectedModelId = preferencesManager.selectedModelId.first()
+                modelManager.loadModelConfigs()
+                val config = modelManager.getModelConfig(selectedModelId ?: "small_3class")
+                currentModelName = config?.name ?: "Unknown Model"
+            } catch (e: Exception) {
+                currentModelName = "Small Classifier (3 classes)"
             }
         }
     }
