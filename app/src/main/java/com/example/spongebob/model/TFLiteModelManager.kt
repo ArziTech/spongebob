@@ -6,15 +6,75 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.DataType
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
+
+/**
+ * Data class to hold detailed model information
+ */
+data class ModelInfo(
+    // Basic Info
+    val modelFileName: String,
+    val modelFileSizeBytes: Long,
+    val modelFileSizeFormatted: String,
+
+    // Input Info
+    val inputShape: IntArray,
+    val inputDataType: String,
+    val inputWidth: Int,
+    val inputHeight: Int,
+    val inputChannels: Int,
+    val batchSize: Int,
+    val inputFormat: String, // "NHWC" or "NCHW"
+    val inputSizeBytes: Long,
+    val inputSizeFormatted: String,
+
+    // Output Info
+    val outputShape: IntArray,
+    val outputDataType: String,
+    val outputClasses: Int,
+    val outputSizeBytes: Long,
+    val outputSizeFormatted: String,
+
+    // Class Labels
+    val classLabels: List<String>,
+
+    // Runtime Config
+    val numThreads: Int,
+    val useGpu: Boolean,
+    val isGpuSupported: Boolean,
+
+    // Model Metadata
+    val totalParameters: Long,
+    val totalParametersFormatted: String
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ModelInfo
+
+        if (!inputShape.contentEquals(other.inputShape)) return false
+        if (!outputShape.contentEquals(other.outputShape)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = inputShape.contentHashCode()
+        result = 31 * result + outputShape.contentHashCode()
+        return result
+    }
+}
 
 /**
  * TensorFlow Lite model manager for running image classification models on Android.
@@ -32,6 +92,7 @@ class TFLiteModelManager(
     private var inputWidth: Int = 640  // Will be read from model
     private var inputHeight: Int = 640 // Will be read from model
     private var outputCount: Int = 3   // Will be read from model
+    private var modelInfo: ModelInfo? = null
 
     var isInitialized: Boolean = false
         private set
@@ -45,7 +106,15 @@ class TFLiteModelManager(
             "Sedang",
             "Parah"
         )
+
+        // TFLite Runtime Version
+        val TFLITE_VERSION = "2.14.0"
     }
+
+    /**
+     * Get detailed model information.
+     */
+    fun getModelInfo(): ModelInfo? = modelInfo
 
     /**
      * Check if the device supports GPU acceleration.
@@ -77,6 +146,9 @@ class TFLiteModelManager(
         Log.i(TAG, "========== TFLite Model Initialization Started ==========")
         Log.d(TAG, "Model file: $MODEL_FILE")
 
+        // Get model file size
+        val modelFileSize = getModelFileSize()
+
         // Load model from assets
         Log.d(TAG, "[1/4] Loading model from assets...")
         val modelBuffer: MappedByteBuffer = try {
@@ -93,10 +165,11 @@ class TFLiteModelManager(
         // Create interpreter options
         Log.d(TAG, "[2/4] Creating interpreter options...")
         val options = Interpreter.Options()
+        val numThreads = 4
 
         // Use CPU with multiple threads for stability
-        Log.d(TAG, "Using CPU execution with 4 threads")
-        options.numThreads = 4
+        Log.d(TAG, "Using CPU execution with $numThreads threads")
+        options.numThreads = numThreads
 
         Log.i(TAG, "[2/4] Interpreter options created (CPU execution)")
 
@@ -114,25 +187,39 @@ class TFLiteModelManager(
 
         // Read model input/output shapes dynamically
         Log.d(TAG, "[4/4] Getting model input/output info...")
+
+        var inputFormat = "Unknown"
+        var batch = 1
+        var channels = 3
+
         interpreter?.let { interp ->
-            val inputShape = interp.getInputTensor(0).shape()
-            val outputShape = interp.getOutputTensor(0).shape()
+            val inputTensor = interp.getInputTensor(0)
+            val outputTensor = interp.getOutputTensor(0)
+
+            val inputShape = inputTensor.shape()
+            val outputShape = outputTensor.shape()
+
             Log.i(TAG, "[4/4] Model input shape: ${inputShape.toList()}")
             Log.i(TAG, "[4/4] Model output shape: ${outputShape.toList()}")
 
             // Parse input shape - expecting [batch, height, width, channels] or [batch, channels, height, width]
             when (inputShape.size) {
                 4 -> {
+                    batch = inputShape[0]
                     // NHWC format: [batch, height, width, channels]
-                    if (inputShape[3] == 3) {
+                    if (inputShape[3] == 3 || inputShape[3] == 1 || inputShape[3] == 4) {
                         inputHeight = inputShape[1]
                         inputWidth = inputShape[2]
-                        Log.i(TAG, "Input format: NHWC [batch, height=$inputHeight, width=$inputWidth, channels=3]")
+                        channels = inputShape[3]
+                        inputFormat = "NHWC"
+                        Log.i(TAG, "Input format: NHWC [batch=$batch, height=$inputHeight, width=$inputWidth, channels=$channels]")
                     } else {
                         // NCHW format: [batch, channels, height, width]
+                        channels = inputShape[1]
                         inputHeight = inputShape[2]
                         inputWidth = inputShape[3]
-                        Log.i(TAG, "Input format: NCHW [batch, channels=3, height=$inputHeight, width=$inputWidth]")
+                        inputFormat = "NCHW"
+                        Log.i(TAG, "Input format: NCHW [batch=$batch, channels=$channels, height=$inputHeight, width=$inputWidth]")
                     }
                 }
                 else -> {
@@ -143,12 +230,94 @@ class TFLiteModelManager(
             // Parse output shape
             outputCount = outputShape.last()
             Log.i(TAG, "Output class count: $outputCount")
+
+            // Calculate sizes
+            val inputSizeBytes = (batch * inputHeight * inputWidth * channels * 4).toLong() // 4 bytes per float32
+            val outputSizeBytes = (batch * outputCount * 4).toLong()
+
+            // Estimate parameters (rough estimate based on model size)
+            val totalParams = modelBuffer.capacity().toLong() / 4 // Rough estimate
+
+            // Build ModelInfo
+            modelInfo = ModelInfo(
+                modelFileName = MODEL_FILE,
+                modelFileSizeBytes = modelFileSize,
+                modelFileSizeFormatted = formatFileSize(modelFileSize),
+
+                inputShape = inputShape,
+                inputDataType = getDataTypeName(inputTensor.dataType()),
+                inputWidth = inputWidth,
+                inputHeight = inputHeight,
+                inputChannels = channels,
+                batchSize = batch,
+                inputFormat = inputFormat,
+                inputSizeBytes = inputSizeBytes,
+                inputSizeFormatted = formatFileSize(inputSizeBytes),
+
+                outputShape = outputShape,
+                outputDataType = getDataTypeName(outputTensor.dataType()),
+                outputClasses = outputCount,
+                outputSizeBytes = outputSizeBytes,
+                outputSizeFormatted = formatFileSize(outputSizeBytes),
+
+                classLabels = CLASS_LABELS,
+
+                numThreads = numThreads,
+                useGpu = useGpu,
+                isGpuSupported = isGpuSupported(),
+
+                totalParameters = totalParams,
+                totalParametersFormatted = formatNumber(totalParams)
+            )
         }
 
         Log.d(TAG, "Final input size: ${inputWidth}x${inputHeight}")
         Log.d(TAG, "Class labels: $CLASS_LABELS")
         isInitialized = true
         Log.i(TAG, "========== TFLite Model Ready ==========")
+    }
+
+    private fun getModelFileSize(): Long {
+        return try {
+            context.assets.openFd(MODEL_FILE).length
+        } catch (e: Exception) {
+            try {
+                val assetInputStream = context.assets.open(MODEL_FILE)
+                val size = assetInputStream.available().toLong()
+                assetInputStream.close()
+                size
+            } catch (e2: Exception) {
+                0L
+            }
+        }
+    }
+
+    private fun getDataTypeName(dataType: DataType): String {
+        return when (dataType) {
+            DataType.FLOAT32 -> "Float32"
+            DataType.INT32 -> "Int32"
+            DataType.UINT8 -> "UInt8"
+            DataType.INT64 -> "Int64"
+            DataType.INT16 -> "Int16"
+            DataType.INT8 -> "Int8"
+            else -> dataType.name
+        }
+    }
+
+    private fun formatFileSize(bytes: Long): String {
+        return when {
+            bytes >= 1024 * 1024 -> String.format("%.2f MB", bytes / (1024.0 * 1024.0))
+            bytes >= 1024 -> String.format("%.2f KB", bytes / 1024.0)
+            else -> "$bytes B"
+        }
+    }
+
+    private fun formatNumber(num: Long): String {
+        return when {
+            num >= 1_000_000 -> String.format("%.2fM", num / 1_000_000.0)
+            num >= 1_000 -> String.format("%.1fK", num / 1_000.0)
+            else -> num.toString()
+        }
     }
 
     /**
