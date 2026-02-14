@@ -25,7 +25,6 @@ import com.example.spongebob.navigation.*
 import com.example.spongebob.screens.*
 import com.example.spongebob.screens.model.ModelListScreen
 import com.example.spongebob.screens.model.ModelDetailScreen
-import com.example.spongebob.ui.theme.SpongebobTheme
 import com.example.spongebob.ui.theme.OklchTheme
 import com.example.spongebob.ui.theme.ThemeOption
 import com.example.spongebob.viewmodel.*
@@ -51,7 +50,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SpongebobTheme {
+            val themeOption by preferencesManager.themeOption.collectAsState(
+                initialValue = com.example.spongebob.ui.theme.ThemeOption.SYSTEM
+            )
+
+            OklchTheme(themeOption = themeOption) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
