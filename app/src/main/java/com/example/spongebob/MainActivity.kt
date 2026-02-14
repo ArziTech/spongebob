@@ -10,10 +10,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,6 +26,8 @@ import com.example.spongebob.screens.*
 import com.example.spongebob.screens.model.ModelListScreen
 import com.example.spongebob.screens.model.ModelDetailScreen
 import com.example.spongebob.ui.theme.SpongebobTheme
+import com.example.spongebob.ui.theme.OklchTheme
+import com.example.spongebob.ui.theme.ThemeOption
 import com.example.spongebob.viewmodel.*
 import com.example.spongebob.data.PreferencesManager
 import kotlinx.coroutines.flow.first

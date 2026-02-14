@@ -40,6 +40,8 @@ import com.example.spongebob.ui.theme.DeepSea
 import com.example.spongebob.ui.theme.OceanBlue
 import com.example.spongebob.ui.theme.PatrickPink
 import com.example.spongebob.ui.theme.SpongeYellow
+import com.example.spongebob.ui.theme.ThemeOption
+import com.example.spongebob.ui.theme.ThemeSwitcher
 import com.example.spongebob.viewmodel.SettingsViewModel
 
 // ==================== SETTINGS SCREEN ====================
@@ -51,6 +53,7 @@ fun SettingsScreen(
 ) {
     val showInferenceTime by viewModel.showInferenceTime.collectAsState()
     val useGpu by viewModel.useGpu.collectAsState()
+    val themeOption by viewModel.themeOption.collectAsState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -142,6 +145,14 @@ fun SettingsScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // Theme Selection
+                ThemeSwitcher(
+                    currentTheme = themeOption,
+                    onThemeChange = { viewModel.setThemeOption(it) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Performance Settings Section
                 Text(

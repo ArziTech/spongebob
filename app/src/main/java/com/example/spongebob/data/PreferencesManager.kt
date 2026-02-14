@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import com.example.spongebob.ui.theme.ThemeOption
 
 // DataStore extension
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -21,6 +22,7 @@ class PreferencesManager(private val context: Context) {
         val USE_GPU_KEY = booleanPreferencesKey("use_gpu")
         val GPU_MODAL_SHOWN_KEY = booleanPreferencesKey("gpu_modal_shown")
         val SELECTED_MODEL_ID_KEY = stringPreferencesKey("selected_model_id")
+        val THEME_KEY = stringPreferencesKey("theme") // "light", "dark", or "system"
     }
 
     // Flow for show inference time preference
@@ -41,6 +43,12 @@ class PreferencesManager(private val context: Context) {
     // Flow for selected model ID
     val selectedModelId: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[SELECTED_MODEL_ID_KEY] ?: "small_3class" // Default: small_3class
+    }
+
+    // Flow for theme preference (as ThemeOption enum)
+    val themeOption: Flow<ThemeOption> = context.dataStore.data.map { preferences ->
+        val themeString = preferences[THEME_KEY]
+        ThemeOption.fromString(themeString)
     }
 
     // Save show inference time preference
@@ -68,6 +76,13 @@ class PreferencesManager(private val context: Context) {
     suspend fun setSelectedModelId(id: String) {
         context.dataStore.edit { preferences ->
             preferences[SELECTED_MODEL_ID_KEY] = id
+        }
+    }
+
+    // Save theme preference
+    suspend fun setThemeOption(theme: ThemeOption) {
+        context.dataStore.edit { preferences ->
+            preferences[THEME_KEY] = theme.name.lowercase()
         }
     }
 }
