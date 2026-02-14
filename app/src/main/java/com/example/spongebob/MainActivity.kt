@@ -10,8 +10,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -50,11 +52,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val themeOption by preferencesManager.themeOption.collectAsState(
-                initialValue = com.example.spongebob.ui.theme.ThemeOption.SYSTEM
-            )
+            val themeOption = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.example.spongebob.ui.theme.ThemeOption.SYSTEM) }
 
-            OklchTheme(themeOption = themeOption) {
+            androidx.compose.runtime.LaunchedEffect(preferencesManager.themeOption) {
+                preferencesManager.themeOption.collect { themeOption.value = it }
+            }
+
+            OklchTheme(themeOption = themeOption.value) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
