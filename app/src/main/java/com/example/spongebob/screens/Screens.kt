@@ -94,8 +94,8 @@ import com.example.spongebob.navigation.Camera
 import com.example.spongebob.navigation.Inference
 import com.example.spongebob.navigation.Input
 import com.example.spongebob.navigation.Result
-import com.example.spongebob.ui.theme.BubbleWhite
 import com.example.spongebob.ui.theme.KrabRed
+import com.example.spongebob.ui.theme.OklchLightColors
 import com.example.spongebob.ui.theme.OceanBlue
 import com.example.spongebob.ui.theme.SpongeYellow
 import com.example.spongebob.ui.theme.SpongeYellowDark
@@ -114,73 +114,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
-// ==================== UNDERWATER BACKGROUND WITH BUBBLES ====================
+// ==================== UNDERWATER BACKGROUND (NO BUBBLES) ====================
 @Composable
 fun UnderwaterBackground(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier) {
-        // Animated bubbles
-        UnderwaterBubbles()
-
         // Content
         content()
     }
-}
-
-@Composable
-fun UnderwaterBubbles() {
-    // Create multiple animated bubbles
-    val bubbleCount = 8
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        repeat(bubbleCount) { index ->
-            val xPos = ((index * 120) % 400).dp
-            val yPos = ((index * 80) % 600).dp
-            val sizeVal = (20 + (index % 3) * 10).dp
-
-            Bubble(
-                modifier = Modifier
-                    .offset(x = xPos, y = yPos)
-                    .size(sizeVal),
-                delay = index * 300L
-            )
-        }
-    }
-}
-
-@Composable
-fun Bubble(
-    modifier: Modifier = Modifier,
-    delay: Long = 0
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "bubble")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000 + delay.toInt(), delayMillis = delay.toInt()),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bubbleScale"
-    )
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.1f,
-        targetValue = 0.4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500 + delay.toInt(), delayMillis = delay.toInt()),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bubbleAlpha"
-    )
-
-    Box(
-        modifier = modifier
-            .scale(scale)
-            .clip(CircleShape)
-            .background(BubbleWhite.copy(alpha = alpha))
-    )
 }
 
 // ==================== SPONGEBOB TITLE ====================
@@ -490,7 +433,7 @@ fun InputScreen(
                         Text(
                             text = snackbarData.visuals.message,
                             modifier = Modifier.padding(16.dp),
-                            color = BubbleWhite
+                            color = OklchLightColors.onPrimary
                         )
                     }
                 }
@@ -1167,14 +1110,14 @@ fun CropScreen(
                     onClick = onCancel,
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = KrabRed.copy(alpha = 0.9f),
-                        contentColor = BubbleWhite
+                        contentColor = OklchLightColors.onPrimary
                     ),
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Cancel",
-                        tint = BubbleWhite
+                        tint = OklchLightColors.onPrimary
                     )
                 }
             }
@@ -1191,14 +1134,14 @@ fun CropScreen(
                     },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = OceanBlue,
-                        contentColor = BubbleWhite
+                        contentColor = OklchLightColors.onPrimary
                     ),
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = "Confirm",
-                        tint = BubbleWhite
+                        tint = OklchLightColors.onPrimary
                     )
                 }
             }
@@ -1217,7 +1160,7 @@ fun CropScreen(
             Text(
                 text = "Position image within the frame",
                 modifier = Modifier.padding(16.dp),
-                color = BubbleWhite,
+                color = OklchLightColors.onPrimary,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -1502,7 +1445,7 @@ fun InferenceScreen(
                     Text(
                         text = uiState.errorMessage ?: "Error occurred",
                         modifier = Modifier.padding(16.dp),
-                        color = BubbleWhite,
+                        color = OklchLightColors.onPrimary,
                         textAlign = TextAlign.Center
                     )
                 }
